@@ -57,56 +57,60 @@ auto Request::Parse(std::string_view data) -> ParseResult
                 // we need to guarantee 1 character for which P method this is
                 if(m_pos + 1 < data.length())
                 {
-                    ++m_pos;
-                    if(data[m_pos] == 'O')
+                    // Only advance once for this check, since its multiple branches.
+                    switch(data[++m_pos])
                     {
-                        // "PO" "ST "
-                        if(m_pos + 3 < data.length())
+                        case 'O':
                         {
-                            EXPECT('S', ParseResult::UNKNOWN_METHOD);
-                            EXPECT('T', ParseResult::UNKNOWN_METHOD);
-                            EXPECT_WS(ParseResult::UNKNOWN_METHOD);
-                            ADVANCE(); // advance past whitespace character
-                            m_method = Method::POST;
+                            // "PO" "ST "
+                            if(m_pos + 3 < data.length())
+                            {
+                                EXPECT('S', ParseResult::UNKNOWN_METHOD);
+                                EXPECT('T', ParseResult::UNKNOWN_METHOD);
+                                EXPECT_WS(ParseResult::UNKNOWN_METHOD);
+                                ADVANCE(); // advance past whitespace character
+                                m_method = Method::POST;
+                            }
+                            else
+                            {
+                                return ParseResult::INCOMPLETE;
+                            }
                         }
-                        else
+                            break;
+                        case 'U':
                         {
+                            // "PU" "T "
+                            if(m_pos + 2 < data.length())
+                            {
+                                EXPECT('T', ParseResult::UNKNOWN_METHOD);
+                                EXPECT_WS(ParseResult::UNKNOWN_METHOD); // advance past whitespace character
+                                m_method = Method::PUT;
+                            }
+                            else
+                            {
+                                return ParseResult::INCOMPLETE;
+                            }
+                        }
+                            break;
+                        case 'A':
+                        {
+                            // "PA" "TCH "
+                            if(m_pos + 4 < data.length())
+                            {
+                                EXPECT('T', ParseResult::UNKNOWN_METHOD);
+                                EXPECT('C', ParseResult::UNKNOWN_METHOD);
+                                EXPECT('H', ParseResult::UNKNOWN_METHOD);
+                                EXPECT_WS(ParseResult::UNKNOWN_METHOD); // advance past whitespace character
+                                m_method = Method::PATCH;
+                            }
+                            else
+                            {
+                                return ParseResult::INCOMPLETE;
+                            }
+                        }
+                            break;
+                        default:
                             return ParseResult::INCOMPLETE;
-                        }
-                    }
-                    else if(data[m_pos] == 'U')
-                    {
-                        // "PU" "T "
-                        if(m_pos + 2 < data.length())
-                        {
-                            EXPECT('T', ParseResult::UNKNOWN_METHOD);
-                            EXPECT_WS(ParseResult::UNKNOWN_METHOD); // advance past whitespace character
-                            m_method = Method::PUT;
-                        }
-                        else
-                        {
-                            return ParseResult::INCOMPLETE;
-                        }
-                    }
-                    else if(data[m_pos] == 'A')
-                    {
-                        // "PA" "TCH "
-                        if(m_pos + 4 < data.length())
-                        {
-                            EXPECT('T', ParseResult::UNKNOWN_METHOD);
-                            EXPECT('C', ParseResult::UNKNOWN_METHOD);
-                            EXPECT('H', ParseResult::UNKNOWN_METHOD);
-                            EXPECT_WS(ParseResult::UNKNOWN_METHOD); // advance past whitespace character
-                            m_method = Method::PATCH;
-                        }
-                        else
-                        {
-                            return ParseResult::INCOMPLETE;
-                        }
-                    }
-                    else
-                    {
-                        return ParseResult::UNKNOWN_METHOD;
                     }
                 }
                 else
