@@ -94,7 +94,7 @@ SCENARIO("Parsing POST Method")
 {
     GIVEN("A POST HTTP Request")
     {
-        std::string request_data = "POST /derp.html HTTP/1.1\r\n\r\n";
+        std::string request_data = "POST ";
         liquid::request::Request request{};
 
         WHEN("Parsed")
@@ -234,7 +234,7 @@ SCENARIO("Parsing DELETE Method")
 {
     GIVEN("A DELETE HTTP Request")
     {
-        std::string request_data = "DELETE /derp.html HTTP/1.1\r\n\r\n";
+        std::string request_data = "DELETE ";
         liquid::request::Request request{};
 
         WHEN("Parsed")
@@ -245,6 +245,72 @@ SCENARIO("Parsing DELETE Method")
                 REQUIRE(result == liquid::request::ParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::DELETE);
                 REQUIRE(request.GetParseState() == liquid::request::ParseState::METHOD_PARSED);
+            }
+        }
+    }
+}
+
+SCENARIO("Parsing a complete URI")
+{
+    GIVEN("A complete URI")
+    {
+        std::string request_data = "GET /derp.html ";
+        liquid::request::Request request{};
+
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect the method to be GET and have a parsed URI")
+            {
+                REQUIRE(result == liquid::request::ParseResult::INCOMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::URI_PARSED);
+                REQUIRE(request.GetUri() == "/derp.html");
+            }
+        }
+    }
+}
+
+SCENARIO("Parsing an incomplete URI")
+{
+    GIVEN("A complete URI")
+    {
+        std::string request_data = "GET /derp.html?flerpity=";
+        liquid::request::Request request{};
+
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect the method to be GET and not have parsed the URI yet")
+            {
+                REQUIRE(result == liquid::request::ParseResult::INCOMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::METHOD_PARSED);
+            }
+        }
+
+        request_data.append("merpity");
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect the method to be GET and not have parsed the URI yet")
+            {
+                REQUIRE(result == liquid::request::ParseResult::INCOMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::METHOD_PARSED);
+            }
+        }
+
+        request_data.append(" ");
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect the method to be GET and parsed the URI")
+            {
+                REQUIRE(result == liquid::request::ParseResult::INCOMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::URI_PARSED);
+                REQUIRE(request.GetUri() == "/derp.html?flerpity=merpity");
             }
         }
     }

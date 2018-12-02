@@ -3,8 +3,11 @@
 namespace liquid::request
 {
 
+static constexpr char HTTP_SP = ' ';
+//static constexpr char HTTP_CR = '\r';
+//static constexpr char HTTP_LF = '\n';
+
 #define EXPECT(C, E) { if(data[++m_pos] != C) { return E; }}
-#define EXPECT_WS(E) { if(!std::isspace(data[++m_pos])) { return E; }}
 #define ADVANCE() { ++m_pos; }
 
 auto Request::Parse(std::string_view data) -> ParseResult
@@ -16,20 +19,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
 
     if(m_parse_state == ParseState::START)
     {
-        // left trim to start
-        for(auto c : data)
-        {
-            if(std::isspace(c))
-            {
-                ++m_pos;
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        switch(data[m_pos])
+        switch(data[0])
         {
             // GET
             case 'G':
@@ -39,8 +29,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                 {
                     EXPECT('E', ParseResult::UNKNOWN_METHOD);
                     EXPECT('T', ParseResult::UNKNOWN_METHOD);
-                    EXPECT_WS(ParseResult::UNKNOWN_METHOD);
-                    ADVANCE() // advance past whitespace character
+                    EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
                     m_method = Method::GET;
                 }
                 else
@@ -67,8 +56,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                             {
                                 EXPECT('S', ParseResult::UNKNOWN_METHOD);
                                 EXPECT('T', ParseResult::UNKNOWN_METHOD);
-                                EXPECT_WS(ParseResult::UNKNOWN_METHOD);
-                                ADVANCE(); // advance past whitespace character
+                                EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
                                 m_method = Method::POST;
                             }
                             else
@@ -83,7 +71,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                             if(m_pos + 2 < data.length())
                             {
                                 EXPECT('T', ParseResult::UNKNOWN_METHOD);
-                                EXPECT_WS(ParseResult::UNKNOWN_METHOD); // advance past whitespace character
+                                EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
                                 m_method = Method::PUT;
                             }
                             else
@@ -100,7 +88,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                                 EXPECT('T', ParseResult::UNKNOWN_METHOD);
                                 EXPECT('C', ParseResult::UNKNOWN_METHOD);
                                 EXPECT('H', ParseResult::UNKNOWN_METHOD);
-                                EXPECT_WS(ParseResult::UNKNOWN_METHOD); // advance past whitespace character
+                                EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
                                 m_method = Method::PATCH;
                             }
                             else
@@ -129,7 +117,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                     EXPECT('E', ParseResult::UNKNOWN_METHOD);
                     EXPECT('A', ParseResult::UNKNOWN_METHOD);
                     EXPECT('D', ParseResult::UNKNOWN_METHOD);
-                    EXPECT_WS(ParseResult::UNKNOWN_METHOD); // advance past whitespace character
+                    EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
                     m_method = Method::HEAD;
                 }
                 else
@@ -149,7 +137,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                     EXPECT('E', ParseResult::UNKNOWN_METHOD);
                     EXPECT('T', ParseResult::UNKNOWN_METHOD);
                     EXPECT('E', ParseResult::UNKNOWN_METHOD);
-                    EXPECT_WS(ParseResult::UNKNOWN_METHOD); // advance past whitespace character
+                    EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
                     m_method = Method::DELETE;
                 }
                 else
@@ -170,7 +158,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                     EXPECT('E', ParseResult::UNKNOWN_METHOD);
                     EXPECT('C', ParseResult::UNKNOWN_METHOD);
                     EXPECT('T', ParseResult::UNKNOWN_METHOD);
-                    EXPECT_WS(ParseResult::UNKNOWN_METHOD)
+                    EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
                     m_method = Method::CONNECT;
                 }
                 else
@@ -191,7 +179,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                     EXPECT('O', ParseResult::UNKNOWN_METHOD);
                     EXPECT('N', ParseResult::UNKNOWN_METHOD);
                     EXPECT('S', ParseResult::UNKNOWN_METHOD);
-                    EXPECT_WS(ParseResult::UNKNOWN_METHOD);
+                    EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
                     m_method = Method::OPTIONS;
                 }
                 else
@@ -211,7 +199,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                     EXPECT('A', ParseResult::UNKNOWN_METHOD);
                     EXPECT('C', ParseResult::UNKNOWN_METHOD);
                     EXPECT('E', ParseResult::UNKNOWN_METHOD);
-                    EXPECT_WS(ParseResult::UNKNOWN_METHOD);
+                    EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
                     m_method = Method::TRACE;
                 }
                 else
@@ -223,9 +211,53 @@ auto Request::Parse(std::string_view data) -> ParseResult
             default:
                 return ParseResult::UNKNOWN_METHOD;
         }
+
+        // If the parser gets this far then its successfully parsed the HTTP Method.
+        m_parse_state = ParseState::METHOD_PARSED;
     }
 
-    m_parse_state = ParseState::METHOD_PARSED;
+    // After parsing the Method move on to parsing the URI.
+    if(m_parse_state == ParseState::METHOD_PARSED)
+    {
+        ADVANCE(); // Previous parse leaves us on the HTTP_SP token before the URI, advance past it.
+        size_t total_len = data.length();
+        if(m_uri_start_pos == 0)
+        {
+            // Set the start pos once (subsequent Parse calls could have different m_pos!)
+            // saved for calculating the view of the URI.
+            m_uri_start_pos = m_pos;
+        }
+
+        // Advance until the next HTTP_SP is found
+        while(true)
+        {
+            if(m_pos < total_len)
+            {
+                // Always ADVANCE() after checking the current character regardless
+                // if it is HTTP_SP or not.
+                if(data[m_pos++] != HTTP_SP)
+                {
+                    continue; // while(true)
+                }
+                else
+                {
+                    // We've found the end of the URI.
+                    break; // while(true)
+                }
+            }
+            else
+            {
+                // If the end of the data is found with no HTTP_SP then more data is needed.
+                return ParseResult::INCOMPLETE;
+            }
+        }
+
+        // Subtract off 1 for the final HTTP_SP that was found.
+        m_uri = std::string_view{&data[m_uri_start_pos], (m_pos - 1) - m_uri_start_pos};
+
+        // If the parser gets this far then its successfully parsed the URI.
+        m_parse_state = ParseState::URI_PARSED;
+    }
 
     return ParseResult::INCOMPLETE;
 }
@@ -238,6 +270,11 @@ auto Request::GetParseState() const -> ParseState
 auto Request::GetMethod() const -> Method
 {
     return m_method;
+}
+
+auto Request::GetUri() const -> std::string_view
+{
+    return m_uri;
 }
 
 } // namespace liquid::request
