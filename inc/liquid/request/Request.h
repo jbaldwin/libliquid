@@ -1,6 +1,7 @@
 #pragma once
 
 #include "liquid/Method.h"
+#include "liquid/Version.h"
 
 #include <string>
 #include <optional>
@@ -13,17 +14,19 @@ enum class ParseResult
 {
     COMPLETE,
     INCOMPLETE,
-    UNKNOWN_METHOD
+    METHOD_UNKNOWN,
+    HTTP_VERSION_MALFORMED,
+    HTTP_VERSION_UNKNOWN
 };
 
 enum class ParseState
 {
     START,
-    METHOD_PARSED,
-    URI_PARSED,
-    VERSION,
-    HEADERS,
-    BODY
+    PARSED_METHOD,
+    PARSED_URI,
+    PARSED_VERSION,
+    PARSED_HEADERS,
+    PARSED_BODY
 };
 
 class Request
@@ -58,15 +61,21 @@ public:
 
     /**
      * @return The parsed HTTP Method.  This value is only valid if the parser has successfully
-     *          passed the 'METHOD_PARSED' parse state.
+     *          passed the 'PARSED_METHOD' parse state.
      */
     auto GetMethod() const -> Method;
 
     /**
      * @return The parsed URI.  This value is only valid if the parser has successfully
-     *          passed the 'URI_PARSED' parse state.
+     *          passed the 'PARSED_URI' parse state.
      */
     auto GetUri() const -> std::string_view;
+
+    /**
+     * @return The parsed HTTP Version.  This value is only valid if the parser has succesfully
+     *          passed the 'PARSED_VERSION' parse state.
+     */
+    auto GetVersion() const -> Version;
 
 private:
     /// How far in the parse state machine has this data gotten?
@@ -81,6 +90,10 @@ private:
     size_t m_uri_start_pos{0};
     /// The parsed URI.
     std::string_view m_uri;
+
+    /// The parsed HTTP/X.Y version.
+    Version m_version;
+
 };
 
 } // namespace liquid::request

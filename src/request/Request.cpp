@@ -4,8 +4,8 @@ namespace liquid::request
 {
 
 static constexpr char HTTP_SP = ' ';
-//static constexpr char HTTP_CR = '\r';
-//static constexpr char HTTP_LF = '\n';
+static constexpr char HTTP_CR = '\r';
+static constexpr char HTTP_LF = '\n';
 
 #define EXPECT(C, E) { if(data[++m_pos] != C) { return E; }}
 #define ADVANCE() { ++m_pos; }
@@ -27,9 +27,9 @@ auto Request::Parse(std::string_view data) -> ParseResult
                 // do we have enough room to parse "G" "ET "?
                 if(m_pos + 3 < data.length())
                 {
-                    EXPECT('E', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('T', ParseResult::UNKNOWN_METHOD);
-                    EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
+                    EXPECT('E', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('T', ParseResult::METHOD_UNKNOWN);
+                    EXPECT(HTTP_SP, ParseResult::METHOD_UNKNOWN);
                     m_method = Method::GET;
                 }
                 else
@@ -54,9 +54,9 @@ auto Request::Parse(std::string_view data) -> ParseResult
                             // "PO" "ST "
                             if(m_pos + 3 < data.length())
                             {
-                                EXPECT('S', ParseResult::UNKNOWN_METHOD);
-                                EXPECT('T', ParseResult::UNKNOWN_METHOD);
-                                EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
+                                EXPECT('S', ParseResult::METHOD_UNKNOWN);
+                                EXPECT('T', ParseResult::METHOD_UNKNOWN);
+                                EXPECT(HTTP_SP, ParseResult::METHOD_UNKNOWN);
                                 m_method = Method::POST;
                             }
                             else
@@ -70,8 +70,8 @@ auto Request::Parse(std::string_view data) -> ParseResult
                             // "PU" "T "
                             if(m_pos + 2 < data.length())
                             {
-                                EXPECT('T', ParseResult::UNKNOWN_METHOD);
-                                EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
+                                EXPECT('T', ParseResult::METHOD_UNKNOWN);
+                                EXPECT(HTTP_SP, ParseResult::METHOD_UNKNOWN);
                                 m_method = Method::PUT;
                             }
                             else
@@ -85,10 +85,10 @@ auto Request::Parse(std::string_view data) -> ParseResult
                             // "PA" "TCH "
                             if(m_pos + 4 < data.length())
                             {
-                                EXPECT('T', ParseResult::UNKNOWN_METHOD);
-                                EXPECT('C', ParseResult::UNKNOWN_METHOD);
-                                EXPECT('H', ParseResult::UNKNOWN_METHOD);
-                                EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
+                                EXPECT('T', ParseResult::METHOD_UNKNOWN);
+                                EXPECT('C', ParseResult::METHOD_UNKNOWN);
+                                EXPECT('H', ParseResult::METHOD_UNKNOWN);
+                                EXPECT(HTTP_SP, ParseResult::METHOD_UNKNOWN);
                                 m_method = Method::PATCH;
                             }
                             else
@@ -114,10 +114,10 @@ auto Request::Parse(std::string_view data) -> ParseResult
                 // do we have enough room to parse "H ""EAD "?
                 if(m_pos + 4 < data.length())
                 {
-                    EXPECT('E', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('A', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('D', ParseResult::UNKNOWN_METHOD);
-                    EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
+                    EXPECT('E', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('A', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('D', ParseResult::METHOD_UNKNOWN);
+                    EXPECT(HTTP_SP, ParseResult::METHOD_UNKNOWN);
                     m_method = Method::HEAD;
                 }
                 else
@@ -132,12 +132,12 @@ auto Request::Parse(std::string_view data) -> ParseResult
                 // do we have enough room to parse "D" "ELETE "?
                 if(m_pos + 6 < data.length())
                 {
-                    EXPECT('E', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('L', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('E', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('T', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('E', ParseResult::UNKNOWN_METHOD);
-                    EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
+                    EXPECT('E', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('L', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('E', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('T', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('E', ParseResult::METHOD_UNKNOWN);
+                    EXPECT(HTTP_SP, ParseResult::METHOD_UNKNOWN);
                     m_method = Method::DELETE;
                 }
                 else
@@ -152,13 +152,13 @@ auto Request::Parse(std::string_view data) -> ParseResult
                 // do we have enough room to parse "C" "ONNECT "?
                 if(m_pos + 7 < data.length())
                 {
-                    EXPECT('O', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('N', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('N', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('E', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('C', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('T', ParseResult::UNKNOWN_METHOD);
-                    EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
+                    EXPECT('O', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('N', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('N', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('E', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('C', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('T', ParseResult::METHOD_UNKNOWN);
+                    EXPECT(HTTP_SP, ParseResult::METHOD_UNKNOWN);
                     m_method = Method::CONNECT;
                 }
                 else
@@ -173,13 +173,13 @@ auto Request::Parse(std::string_view data) -> ParseResult
                 // do we have enough room to parse "O" "PTIONS "?
                 if(m_pos + 7 < data.length())
                 {
-                    EXPECT('P', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('T', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('I', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('O', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('N', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('S', ParseResult::UNKNOWN_METHOD);
-                    EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
+                    EXPECT('P', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('T', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('I', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('O', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('N', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('S', ParseResult::METHOD_UNKNOWN);
+                    EXPECT(HTTP_SP, ParseResult::METHOD_UNKNOWN);
                     m_method = Method::OPTIONS;
                 }
                 else
@@ -195,11 +195,11 @@ auto Request::Parse(std::string_view data) -> ParseResult
 
                 if(m_pos + 5 < data.length())
                 {
-                    EXPECT('R', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('A', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('C', ParseResult::UNKNOWN_METHOD);
-                    EXPECT('E', ParseResult::UNKNOWN_METHOD);
-                    EXPECT(HTTP_SP, ParseResult::UNKNOWN_METHOD);
+                    EXPECT('R', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('A', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('C', ParseResult::METHOD_UNKNOWN);
+                    EXPECT('E', ParseResult::METHOD_UNKNOWN);
+                    EXPECT(HTTP_SP, ParseResult::METHOD_UNKNOWN);
                     m_method = Method::TRACE;
                 }
                 else
@@ -209,15 +209,15 @@ auto Request::Parse(std::string_view data) -> ParseResult
             }
                 break;
             default:
-                return ParseResult::UNKNOWN_METHOD;
+                return ParseResult::METHOD_UNKNOWN;
         }
 
         // If the parser gets this far then its successfully parsed the HTTP Method.
-        m_parse_state = ParseState::METHOD_PARSED;
+        m_parse_state = ParseState::PARSED_METHOD;
     }
 
     // After parsing the Method move on to parsing the URI.
-    if(m_parse_state == ParseState::METHOD_PARSED)
+    if(m_parse_state == ParseState::PARSED_METHOD)
     {
         ADVANCE(); // Previous parse leaves us on the HTTP_SP token before the URI, advance past it.
         size_t total_len = data.length();
@@ -233,10 +233,10 @@ auto Request::Parse(std::string_view data) -> ParseResult
         {
             if(m_pos < total_len)
             {
-                // Always ADVANCE() after checking the current character regardless
-                // if it is HTTP_SP or not.
-                if(data[m_pos++] != HTTP_SP)
+                if(data[m_pos] != HTTP_SP)
                 {
+                    // only advance if we don't find the HTTP_SP
+                    ADVANCE();
                     continue; // while(true)
                 }
                 else
@@ -253,13 +253,48 @@ auto Request::Parse(std::string_view data) -> ParseResult
         }
 
         // Subtract off 1 for the final HTTP_SP that was found.
-        m_uri = std::string_view{&data[m_uri_start_pos], (m_pos - 1) - m_uri_start_pos};
+        m_uri = std::string_view{&data[m_uri_start_pos], m_pos - m_uri_start_pos};
 
         // If the parser gets this far then its successfully parsed the URI.
-        m_parse_state = ParseState::URI_PARSED;
+        m_parse_state = ParseState::PARSED_URI;
     }
 
-    return ParseResult::INCOMPLETE;
+    if(m_parse_state == ParseState::PARSED_URI)
+    {
+        if(m_pos + 10 < data.length())
+        {
+            // This state expects to still be on the previous HTTP_SP so we can easily EXPECT()
+            EXPECT('H', ParseResult::HTTP_VERSION_MALFORMED);
+            EXPECT('T', ParseResult::HTTP_VERSION_MALFORMED);
+            EXPECT('T', ParseResult::HTTP_VERSION_MALFORMED);
+            EXPECT('P', ParseResult::HTTP_VERSION_MALFORMED);
+            EXPECT('/', ParseResult::HTTP_VERSION_MALFORMED);
+            EXPECT('1', ParseResult::HTTP_VERSION_UNKNOWN);
+            EXPECT('.', ParseResult::HTTP_VERSION_MALFORMED);
+            switch(data[++m_pos])
+            {
+                case '0':
+                    m_version = Version::V1_0;
+                    break;
+                case '1':
+                    m_version = Version::V1_1;
+                    break;
+                default:
+                    return ParseResult::HTTP_VERSION_UNKNOWN;
+            }
+            // We include the \r\n here Request-line to Header parse to reduce bounds checking
+            EXPECT(HTTP_CR, ParseResult::HTTP_VERSION_MALFORMED);
+            EXPECT(HTTP_LF, ParseResult::HTTP_VERSION_MALFORMED);
+        }
+        else
+        {
+            return ParseResult::INCOMPLETE;
+        }
+
+        m_parse_state = ParseState::PARSED_VERSION;
+    }
+
+    return ParseResult::COMPLETE;
 }
 
 auto Request::GetParseState() const -> ParseState
@@ -275,6 +310,11 @@ auto Request::GetMethod() const -> Method
 auto Request::GetUri() const -> std::string_view
 {
     return m_uri;
+}
+
+auto Request::GetVersion() const -> Version
+{
+    return m_version;
 }
 
 } // namespace liquid::request
