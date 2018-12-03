@@ -14,6 +14,7 @@ static const std::string METHOD_CONNECT = "CONNECT"s;
 static const std::string METHOD_OPTIONS = "OPTIONS"s;
 static const std::string METHOD_TRACE   = "TRACE"s;
 static const std::string METHOD_PATCH   = "PATCH"s;
+static const std::string METHOD_INVALID = "INVALID"s;
 
 auto to_string(Method method) -> const std::string&
 {
@@ -37,6 +38,8 @@ auto to_string(Method method) -> const std::string&
             return METHOD_TRACE;
         case Method::PATCH:
             return METHOD_PATCH;
+        default:
+            return METHOD_INVALID;
     }
 }
 

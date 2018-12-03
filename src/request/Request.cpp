@@ -1,7 +1,7 @@
 #include "liquid/request/Request.h"
 #include "liquid/StringUtil.h"
 
-#include <algorithm>
+#include <charconv>
 
 namespace liquid::request
 {
@@ -393,11 +393,32 @@ auto Request::Parse(std::string_view data) -> ParseResult
                 --value_end;
             }
 
-            m_headers[m_header_count] = std::pair
+            m_headers[m_header_count] =
             {
-                std::string_view{&data[name_start], (name_end - name_start + 1)},
-                std::string_view{&data[value_start], (value_end - value_start + 1)}
+                {&data[name_start], (name_end - name_start + 1)},
+                {&data[value_start], (value_end - value_start + 1)}
             };
+            // Before continuing, check to see if any of these headers give an indication if
+            // there is any body content.
+            if(m_body_type == BodyType::END_OF_STREAM)
+            {
+                auto& [name, value] = m_headers[m_header_count];
+                if(
+                        string_view_icompare(name, "Transfer-Encoding")
+                    &&  string_view_icompare(value, "chunked")
+                )
+                {
+                    m_body_type = BodyType::CHUNKED;
+                }
+                else if(
+                        string_view_icompare(name, "Content-Length")
+                    &&  value.length() > 0
+                )
+                {
+                    std::from_chars(value.data(), value.data() + value.length(), m_content_length, 10);
+                    m_body_type = BodyType::CONTENT_LENGTH;
+                }
+            }
             ++m_header_count;
 
             // If this header line end with CRLF then this request has no more headers.
@@ -420,15 +441,29 @@ auto Request::Parse(std::string_view data) -> ParseResult
         switch(m_body_type)
         {
             case BodyType::CHUNKED:
+            {
+
+            }
                 break;
             case BodyType::CONTENT_LENGTH:
+            {
+                if(m_pos + m_content_length >= data.length())
+                {
+                    m_body.emplace(&data[m_pos], m_content_length);
+                    m_parse_state = ParseState::PARSED_BODY;
+                }
+                else
+                {
+                    return ParseResult::INCOMPLETE;
+                }
+            }
                 break;
             case BodyType::END_OF_STREAM:
             {
                 if (m_pos < data.length())
                 {
                     // just update to as much data is possible, this isn't a super reliable method
-                    m_body = std::optional<std::string_view>{{&data[m_pos], (data.length() - m_pos)}};
+                    m_body.emplace(&data[m_pos], data.length() - m_pos);
                     // Do not update m_parse_state, the user might
                     // call again with more data to add into the body...
                 }

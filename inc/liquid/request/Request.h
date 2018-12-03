@@ -116,25 +116,27 @@ private:
     size_t m_pos{0};
 
     /// The parsed HTTP Method.
-    Method m_method;
+    Method m_method{Method::GET};
 
     /// The starting position of the URI, saved during subsequent parses to calculate the full view.
     size_t m_uri_start_pos{0};
     /// The parsed URI.
-    std::string_view m_uri;
+    std::string_view m_uri{};
 
     /// The parsed HTTP/X.Y version.
-    Version m_version;
+    Version m_version{Version::V1_1};
 
     /// The number of headers in the request.
     size_t m_header_count{0};
     /// The actual contents of the header values.
-    std::array<std::pair<std::string_view, std::string_view>, 64> m_headers;
+    std::array<std::pair<std::string_view, std::string_view>, 64> m_headers{};
 
-    /// The type of body, if there is one
+    /// The type of body, if there is one.
     BodyType m_body_type{BodyType::END_OF_STREAM};
+    /// The Content-Length value if present.
+    size_t m_content_length{0};
     /// The request body contents if any.
-    std::optional<std::string_view> m_body;
+    std::optional<std::string_view> m_body{};
 
 };
 

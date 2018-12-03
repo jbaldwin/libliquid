@@ -471,7 +471,7 @@ SCENARIO("Parsing multiple header lines.")
             "GET /derp.html HTTP/1.1\r\n"
             "Connection: keep-alive\r\n"
             "Accept: */*\r\n"
-            "Content-Length: 0\r\n"
+            "X-Content-Length: 0\r\n"
             "\r\n";
         liquid::request::Request request{};
 
@@ -488,7 +488,7 @@ SCENARIO("Parsing multiple header lines.")
                 REQUIRE(request.GetHeaderCount() == 3);
                 REQUIRE(request.GetHeader("cONNECTION").value() == "keep-alive");
                 REQUIRE(request.GetHeader("Accept").value() == "*/*");
-                REQUIRE(request.GetHeader("CONTENT-LENGTH").value() == "0");
+                REQUIRE(request.GetHeader("X-CONTENT-LENGTH").value() == "0");
             }
         }
     }
@@ -548,7 +548,8 @@ SCENARIO("Parsing multiple incomplete header lines.")
             {
                 REQUIRE(result == liquid::request::ParseResult::COMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_HEADERS);
+                // we've got a content length so a body will show up even if its empty
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_BODY);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
                 REQUIRE(request.GetHeaderCount() == 3);
@@ -568,7 +569,7 @@ SCENARIO("Parsing multiple header lines with arbitrary whitespace in the headers
             "GET /derp.html HTTP/1.1\r\n"
             "        Connection  :  keep-alive\r\n"
             "  Accept:  */*\t  \r\n"
-            "    \t     Content-Length      :        0   \r\n"
+            "    \t     X-Content-Length      :        0   \r\n"
             "\r\n";
         liquid::request::Request request{};
 
@@ -585,7 +586,7 @@ SCENARIO("Parsing multiple header lines with arbitrary whitespace in the headers
                 REQUIRE(request.GetHeaderCount() == 3);
                 REQUIRE(request.GetHeader("cONNECTION").value() == "keep-alive");
                 REQUIRE(request.GetHeader("Accept").value() == "*/*");
-                REQUIRE(request.GetHeader("CONTENT-LENGTH").value() == "0");
+                REQUIRE(request.GetHeader("X-CONTENT-LENGTH").value() == "0");
             }
         }
     }
@@ -639,6 +640,39 @@ SCENARIO("Parsing a request with an END OF STREAM body.")
                 REQUIRE(request.GetHeader("Connection").value() == "keep-alive");
                 REQUIRE(request.GetHeader("Accept").value() == "*/*");
                 REQUIRE(request.GetBody().value() == "01234567890123456789");
+            }
+        }
+    }
+}
+
+SCENARIO("Parsing a request with a Content-Length body.")
+{
+    GIVEN("A complete Request-Line")
+    {
+        std::string request_data =
+            "GET /derp.html HTTP/1.1\r\n"
+            "Connection: keep-alive\r\n"
+            "Accept: */*\r\n"
+            "Content-Length: 10\r\n"
+            "\r\n"
+            "0123456789";
+        liquid::request::Request request{};
+
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect the method to be GET and have a parsed URI")
+            {
+                REQUIRE(result == liquid::request::ParseResult::COMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_BODY);
+                REQUIRE(request.GetUri() == "/derp.html");
+                REQUIRE(request.GetVersion() == liquid::Version::V1_1);
+                REQUIRE(request.GetHeaderCount() == 3);
+                REQUIRE(request.GetHeader("Connection").value() == "keep-alive");
+                REQUIRE(request.GetHeader("Accept").value() == "*/*");
+                REQUIRE(request.GetHeader("Content-Length").value() == "10");
+                REQUIRE(request.GetBody().value() == "0123456789");
             }
         }
     }
