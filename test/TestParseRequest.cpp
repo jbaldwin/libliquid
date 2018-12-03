@@ -647,10 +647,10 @@ SCENARIO("Parsing a request with an END OF STREAM body.")
 
 SCENARIO("Parsing a request with a Content-Length body.")
 {
-    GIVEN("A complete Request-Line")
+    GIVEN("A POST request with Content-Length + body")
     {
         std::string request_data =
-            "GET /derp.html HTTP/1.1\r\n"
+            "POST /derp.html HTTP/1.1\r\n"
             "Connection: keep-alive\r\n"
             "Accept: */*\r\n"
             "Content-Length: 10\r\n"
@@ -661,10 +661,10 @@ SCENARIO("Parsing a request with a Content-Length body.")
         WHEN("Parsed")
         {
             auto result = request.Parse(request_data);
-            THEN("We expect the method to be GET and have a parsed URI")
+            THEN("We expect the method to be POST and have a parsed URI and a full body.")
             {
                 REQUIRE(result == liquid::request::ParseResult::COMPLETE);
-                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                REQUIRE(request.GetMethod() == liquid::Method::POST);
                 REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_BODY);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
@@ -673,6 +673,60 @@ SCENARIO("Parsing a request with a Content-Length body.")
                 REQUIRE(request.GetHeader("Accept").value() == "*/*");
                 REQUIRE(request.GetHeader("Content-Length").value() == "10");
                 REQUIRE(request.GetBody().value() == "0123456789");
+            }
+        }
+    }
+}
+
+SCENARIO("Parsing a request with a Transfer-Encoding: chunked body.")
+{
+    GIVEN("A POST request with Transfer-Encoding: chunked + body.")
+    {
+        std::string request_data =
+            "POST /derp.html HTTP/1.1\r\n"
+            "Transfer-Encoding: chunked\r\n"
+            "\r\n"
+            "4\r\n"
+            "Wiki\r\n"
+            "5\r\n"
+            "pedia\r\n"
+            "E\r\n"
+            " in\r\n"
+            "\r\n"
+            "chunks.\r\n"
+            "0\r\n"
+            "\r\n";
+        liquid::request::Request request{};
+
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect the method to be POST with a chunked encoded body.")
+            {
+                REQUIRE(result == liquid::request::ParseResult::COMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::POST);
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_BODY);
+                REQUIRE(request.GetUri() == "/derp.html");
+                REQUIRE(request.GetVersion() == liquid::Version::V1_1);
+                REQUIRE(request.GetHeaderCount() == 1);
+                REQUIRE(request.GetHeader("Transfer-Encoding").value() == "chunked");
+                std::string encoded_body =
+                    "4\r\n"
+                    "Wiki\r\n"
+                    "5\r\n"
+                    "pedia\r\n"
+                    "E\r\n"
+                    " in\r\n"
+                    "\r\n"
+                    "chunks.\r\n"
+                    "0\r\n"
+                    "\r\n";
+                REQUIRE(request.GetBody().value() == encoded_body);
+
+//                std::string decoded_body =
+//                    "Wikipedia in\r\n"
+//                    "\r\n"
+//                    "chunks.";
             }
         }
     }

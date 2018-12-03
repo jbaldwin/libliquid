@@ -16,7 +16,9 @@ enum class ParseResult
     INCOMPLETE,
     METHOD_UNKNOWN,
     HTTP_VERSION_MALFORMED,
-    HTTP_VERSION_UNKNOWN
+    HTTP_VERSION_UNKNOWN,
+    TOO_MANY_HEADERS,
+    CHUNK_MALFORMED
 };
 
 enum class ParseState
@@ -108,7 +110,6 @@ public:
      * @return Gets the request body if the request had one.
      */
     auto GetBody() const -> const std::optional<std::string_view>&;
-
 private:
     /// How far in the parse state machine has this data gotten?
     ParseState m_parse_state{ParseState::START};
@@ -135,9 +136,10 @@ private:
     BodyType m_body_type{BodyType::END_OF_STREAM};
     /// The Content-Length value if present.
     size_t m_content_length{0};
+    /// The start of the body (used for Transfer-Encoding: chunked)
+    size_t m_body_start{0};
     /// The request body contents if any.
     std::optional<std::string_view> m_body{};
-
 };
 
 } // namespace liquid::request

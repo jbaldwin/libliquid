@@ -300,10 +300,10 @@ auto Request::Parse(std::string_view data) -> ParseResult
 
     if(m_parse_state == ParseState::PARSED_VERSION)
     {
-        size_t total_length = data.length();
+        size_t data_length = data.length();
 
         // missing empty line or headers
-        if(total_length == m_pos)
+        if(data_length == m_pos)
         {
             return ParseResult::INCOMPLETE;
         }
@@ -326,21 +326,21 @@ auto Request::Parse(std::string_view data) -> ParseResult
             size_t name_start = m_pos;
             size_t value_start;
             // walk name_start forwards to left trim
-            while(name_start < total_length && std::isspace(data[name_start]))
+            while(name_start < data_length && std::isspace(data[name_start]))
             {
                 ++name_start;
             }
 
             size_t name_end = name_start + 1; // first character of the name cannot be ':'
             bool found_colon = false;
-            while(name_end < total_length)
+            while(name_end < data_length)
             {
                 if(data[name_end] == ':')
                 {
                     value_start = name_end + 1; // grab value_start before walking name_end backwards for WS
                     --name_end; // don't include ':' in the name
                     found_colon = true;
-                    break; // while(name_end < total_length)
+                    break; // while(name_end < data_length)
                 }
                 ++name_end;
             }
@@ -358,7 +358,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
             }
 
             // Walk value forwards to left trim
-            while(value_start < total_length && std::isspace(data[value_start]))
+            while(value_start < data_length && std::isspace(data[value_start]))
             {
                 ++value_start;
             }
@@ -367,13 +367,13 @@ auto Request::Parse(std::string_view data) -> ParseResult
             size_t value_end = value_start;
             bool found_crlf = false;
             // This loop must check two characters at a time (CRLF!)
-            while(value_end + 1 < total_length)
+            while(value_end + 1 < data_length)
             {
                 if(data[value_end] == HTTP_CR && data[value_end + 1] == HTTP_LF)
                 {
                     --value_end; // Found the end, do not include CRLF in the value.
                     found_crlf = true;
-                    break; // while(value_end + 1 < total_length)
+                    break; // while(value_end + 1 < data_length)
                 }
                 ++value_end; // we must only increment by 1 otherwise we could skip over a CR
             }
@@ -391,6 +391,12 @@ auto Request::Parse(std::string_view data) -> ParseResult
             while(std::isspace(data[value_end]))
             {
                 --value_end;
+            }
+
+            // We are out of space :(
+            if(m_header_count == 64)
+            {
+                return ParseResult::TOO_MANY_HEADERS;
             }
 
             m_headers[m_header_count] =
@@ -442,7 +448,69 @@ auto Request::Parse(std::string_view data) -> ParseResult
         {
             case BodyType::CHUNKED:
             {
+                // First time through record the start of the body for the full chunked body size.
+                if(m_body_start == 0)
+                {
+                    m_body_start = m_pos;
+                }
 
+                size_t data_length = data.length();
+                while(true)
+                {
+                    size_t chunk_size_end = m_pos + 1;
+                    bool chunk_size_end_found = false;
+                    while(chunk_size_end + 1 < data_length)
+                    {
+                        if(data[chunk_size_end] == HTTP_CR && data[chunk_size_end + 1] == HTTP_LF)
+                        {
+                            chunk_size_end_found = true;
+                            break; // while(chunk_size_end + 1 < data_length)
+                        }
+                        ++chunk_size_end;
+                    }
+
+                    if(!chunk_size_end_found)
+                    {
+                        return ParseResult::INCOMPLETE;
+                    }
+
+                    size_t chunk_length{0};
+                    std::from_chars(&data[m_pos], &data[chunk_size_end], chunk_length, 16);
+
+                    if(chunk_length != 0)
+                    {
+                        // There is a valid chunk with some data, parse over it!
+                        // (note: chunk_size_end includes 1 byte for \r\n already
+                        m_pos = chunk_size_end + 1 + chunk_length;
+                        if(m_pos + 2 < data_length)
+                        {
+                            EXPECT(HTTP_CR, ParseResult::CHUNK_MALFORMED);
+                            EXPECT(HTTP_LF, ParseResult::CHUNK_MALFORMED);
+                            ADVANCE(); // This chunk parser expects to be on the first byte of the chunk
+                        }
+                    }
+                    else
+                    {
+                        // If the chunk length is zero, then EXPECT the final \r\n and record the body.
+                        if(chunk_size_end + 3 <= data_length) // need \n\r\n
+                        {
+                            m_pos = chunk_size_end + 1; // strip the \n trailing chunk_size_end
+                            EXPECT(HTTP_CR, ParseResult::CHUNK_MALFORMED);
+                            EXPECT(HTTP_LF, ParseResult::CHUNK_MALFORMED);
+                            // Theoretically the length should *always* be data.lenght(), but lets calculate
+                            // in the event there is some trailing data that shouldn't be there.
+                            m_body.emplace(&data[m_body_start], (chunk_size_end + 3) - m_body_start + 1);
+                            m_parse_state = ParseState::PARSED_BODY;
+                            break; // while(true)
+                        }
+                        else
+                        {
+                            // its possible to infer the last two bytes *should* be CR LF, but technically
+                            // it is incomplete without them
+                            return ParseResult::INCOMPLETE;
+                        }
+                    }
+                }
             }
                 break;
             case BodyType::CONTENT_LENGTH:
