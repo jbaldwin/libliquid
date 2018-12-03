@@ -12,10 +12,11 @@ set(SYSTEM_LIBRARY_DEPS
 )
 
 set(LIBLIQUID_SOURCE_FILES
-    inc/liquid/request/Request.h src/request/Request.cpp
+    inc/liquid/request/Request.h inc/liquid/request/Request.tcc src/request/Request.cpp
 
     inc/liquid/Liquid.h
     inc/liquid/Method.h src/Method.cpp
+    inc/liquid/StringUtil.h src/StringUtil.cpp
     inc/liquid/Version.h src/Version.cpp
 )
 

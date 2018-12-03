@@ -328,7 +328,7 @@ SCENARIO("Parsing a complete HTTP Version")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI")
             {
-                REQUIRE(result == liquid::request::ParseResult::COMPLETE);
+                REQUIRE(result == liquid::request::ParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
                 REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_VERSION);
                 REQUIRE(request.GetUri() == "/derp.html");
@@ -415,11 +415,230 @@ SCENARIO("Parsing an incomplete HTTP Version")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI and have a version")
             {
+                REQUIRE(result == liquid::request::ParseResult::INCOMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_VERSION);
+                REQUIRE(request.GetUri() == "/derp.html");
+                REQUIRE(request.GetVersion() == liquid::Version::V1_1);
+            }
+        }
+
+        request_data.append("\r\n");
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect the method to be GET and have a parsed URI and have a version and a complete request.")
+            {
                 REQUIRE(result == liquid::request::ParseResult::COMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
                 REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_VERSION);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
+            }
+        }
+    }
+}
+
+SCENARIO("Parsing a header line.")
+{
+    GIVEN("A complete Request-Line")
+    {
+        std::string request_data = "GET /derp.html HTTP/1.1\r\nConnection: keep-alive\r\n\r\n";
+        liquid::request::Request request{};
+
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect the method to be GET and have a parsed URI")
+            {
+                REQUIRE(result == liquid::request::ParseResult::COMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_HEADERS);
+                REQUIRE(request.GetUri() == "/derp.html");
+                REQUIRE(request.GetVersion() == liquid::Version::V1_1);
+                REQUIRE(request.GetHeaderCount() == 1);
+                REQUIRE(request.GetHeader("cONNECTION").value() == "keep-alive");
+            }
+        }
+    }
+}
+
+SCENARIO("Parsing multiple header lines.")
+{
+    GIVEN("A complete Request-Line")
+    {
+        std::string request_data =
+            "GET /derp.html HTTP/1.1\r\n"
+            "Connection: keep-alive\r\n"
+            "Accept: */*\r\n"
+            "Content-Length: 0\r\n"
+            "\r\n";
+        liquid::request::Request request{};
+
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect the method to be GET and have a parsed URI")
+            {
+                REQUIRE(result == liquid::request::ParseResult::COMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_HEADERS);
+                REQUIRE(request.GetUri() == "/derp.html");
+                REQUIRE(request.GetVersion() == liquid::Version::V1_1);
+                REQUIRE(request.GetHeaderCount() == 3);
+                REQUIRE(request.GetHeader("cONNECTION").value() == "keep-alive");
+                REQUIRE(request.GetHeader("Accept").value() == "*/*");
+                REQUIRE(request.GetHeader("CONTENT-LENGTH").value() == "0");
+            }
+        }
+    }
+}
+
+SCENARIO("Parsing multiple incomplete header lines.")
+{
+    GIVEN("A complete Request-Line")
+    {
+        std::string request_data =
+            "GET /derp.html HTTP/1.1\r\n"
+            "Connection: keep-";
+        liquid::request::Request request{};
+
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect to have parsed through the version.")
+            {
+                REQUIRE(result == liquid::request::ParseResult::INCOMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_VERSION);
+                REQUIRE(request.GetUri() == "/derp.html");
+                REQUIRE(request.GetVersion() == liquid::Version::V1_1);
+                REQUIRE(request.GetHeaderCount() == 0);
+            }
+        }
+
+        request_data +=
+            "alive\r\n"
+            "Accept: */*\r";
+
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect to have parsed a single header.")
+            {
+                REQUIRE(result == liquid::request::ParseResult::INCOMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_VERSION);
+                REQUIRE(request.GetUri() == "/derp.html");
+                REQUIRE(request.GetVersion() == liquid::Version::V1_1);
+                REQUIRE(request.GetHeaderCount() == 1);
+                REQUIRE(request.GetHeader("Connection").value() == "keep-alive");
+            }
+        }
+
+        request_data +=
+            "\n"
+            "Content-Length: 0\r\n"
+            "\r\n";
+
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect to complete parsing the headers.")
+            {
+                REQUIRE(result == liquid::request::ParseResult::COMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_HEADERS);
+                REQUIRE(request.GetUri() == "/derp.html");
+                REQUIRE(request.GetVersion() == liquid::Version::V1_1);
+                REQUIRE(request.GetHeaderCount() == 3);
+                REQUIRE(request.GetHeader("Connection").value() == "keep-alive");
+                REQUIRE(request.GetHeader("Accept").value() == "*/*");
+                REQUIRE(request.GetHeader("CONTENT-LENGTH").value() == "0");
+            }
+        }
+    }
+}
+
+SCENARIO("Parsing multiple header lines with arbitrary whitespace in the headers.")
+{
+    GIVEN("A complete Request-Line")
+    {
+        std::string request_data =
+            "GET /derp.html HTTP/1.1\r\n"
+            "        Connection  :  keep-alive\r\n"
+            "  Accept:  */*\t  \r\n"
+            "    \t     Content-Length      :        0   \r\n"
+            "\r\n";
+        liquid::request::Request request{};
+
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect the method to be GET and have a parsed URI")
+            {
+                REQUIRE(result == liquid::request::ParseResult::COMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_HEADERS);
+                REQUIRE(request.GetUri() == "/derp.html");
+                REQUIRE(request.GetVersion() == liquid::Version::V1_1);
+                REQUIRE(request.GetHeaderCount() == 3);
+                REQUIRE(request.GetHeader("cONNECTION").value() == "keep-alive");
+                REQUIRE(request.GetHeader("Accept").value() == "*/*");
+                REQUIRE(request.GetHeader("CONTENT-LENGTH").value() == "0");
+            }
+        }
+    }
+}
+
+SCENARIO("Parsing a request with an END OF STREAM body.")
+{
+    GIVEN("A complete POST request with body.")
+    {
+        std::string request_data =
+            "POST /derp?key=flerp HTTP/1.1\r\n"
+            "Connection: keep-alive\r\n"
+            "Accept: */*\r\n"
+            "\r\n"
+            "0123456789";
+        liquid::request::Request request{};
+
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect the body to be parsed.")
+            {
+                REQUIRE(result == liquid::request::ParseResult::COMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::POST);
+                // This looks incorrect, but since END OF STREAM cannot be determined by the parser
+                // it never marks this 'body' method as complete so a subsequent call can pickup more data.
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_HEADERS);
+                REQUIRE(request.GetUri() == "/derp?key=flerp");
+                REQUIRE(request.GetVersion() == liquid::Version::V1_1);
+                REQUIRE(request.GetHeaderCount() == 2);
+                REQUIRE(request.GetHeader("Connection").value() == "keep-alive");
+                REQUIRE(request.GetHeader("Accept").value() == "*/*");
+                REQUIRE(request.GetBody().value() == "0123456789");
+            }
+        }
+
+        request_data += "0123456789";
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect the body to be parsed.")
+            {
+                REQUIRE(result == liquid::request::ParseResult::COMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::POST);
+                // This looks incorrect, but since END OF STREAM cannot be determined by the parser
+                // it never marks this 'body' method as complete so a subsequent call can pickup more data.
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_HEADERS);
+                REQUIRE(request.GetUri() == "/derp?key=flerp");
+                REQUIRE(request.GetVersion() == liquid::Version::V1_1);
+                REQUIRE(request.GetHeaderCount() == 2);
+                REQUIRE(request.GetHeader("Connection").value() == "keep-alive");
+                REQUIRE(request.GetHeader("Accept").value() == "*/*");
+                REQUIRE(request.GetBody().value() == "01234567890123456789");
             }
         }
     }

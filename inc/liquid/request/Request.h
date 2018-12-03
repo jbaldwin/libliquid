@@ -29,6 +29,13 @@ enum class ParseState
     PARSED_BODY
 };
 
+enum class BodyType
+{
+    CHUNKED,
+    CONTENT_LENGTH,
+    END_OF_STREAM
+};
+
 class Request
 {
 public:
@@ -77,6 +84,31 @@ public:
      */
     auto GetVersion() const -> Version;
 
+    /**
+     * @return Gets the number of parsed headers.
+     */
+    auto GetHeaderCount() const -> size_t;
+
+    /**
+     * Finds the first header given by name (case insensitive).
+     * @param name Find this header's value.
+     * @return The value if it was in the request, otherwise an empty optional.
+     */
+    auto GetHeader(std::string_view name) const -> std::optional<std::string_view>;
+
+    /**
+     * Iterates over each request header with the (name, value) pair as std::string_view arguments.
+     * @tparam Functor [](std::string_view name, std::string_view value) -> void;
+     * @param functor Callback functor to be called on each header name, value pair.
+     */
+    template<typename Functor>
+    auto ForEachHeader(Functor&& functor) -> void;
+
+    /**
+     * @return Gets the request body if the request had one.
+     */
+    auto GetBody() const -> const std::optional<std::string_view>&;
+
 private:
     /// How far in the parse state machine has this data gotten?
     ParseState m_parse_state{ParseState::START};
@@ -94,6 +126,18 @@ private:
     /// The parsed HTTP/X.Y version.
     Version m_version;
 
+    /// The number of headers in the request.
+    size_t m_header_count{0};
+    /// The actual contents of the header values.
+    std::array<std::pair<std::string_view, std::string_view>, 64> m_headers;
+
+    /// The type of body, if there is one
+    BodyType m_body_type{BodyType::END_OF_STREAM};
+    /// The request body contents if any.
+    std::optional<std::string_view> m_body;
+
 };
 
 } // namespace liquid::request
+
+#include "liquid/request/Request.tcc"

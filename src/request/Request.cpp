@@ -1,4 +1,7 @@
 #include "liquid/request/Request.h"
+#include "liquid/StringUtil.h"
+
+#include <algorithm>
 
 namespace liquid::request
 {
@@ -285,6 +288,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
             // We include the \r\n here Request-line to Header parse to reduce bounds checking
             EXPECT(HTTP_CR, ParseResult::HTTP_VERSION_MALFORMED);
             EXPECT(HTTP_LF, ParseResult::HTTP_VERSION_MALFORMED);
+            ADVANCE(); // Next section expects to be on its starting position
         }
         else
         {
@@ -292,6 +296,145 @@ auto Request::Parse(std::string_view data) -> ParseResult
         }
 
         m_parse_state = ParseState::PARSED_VERSION;
+    }
+
+    if(m_parse_state == ParseState::PARSED_VERSION)
+    {
+        size_t total_length = data.length();
+
+        // missing empty line or headers
+        if(total_length == m_pos)
+        {
+            return ParseResult::INCOMPLETE;
+        }
+
+        // If there are exactly 2 characters left and its the newline,
+        // this request is complete as there are no headers.
+        if(
+                m_pos + 2 == data.length()
+            &&  data[m_pos] == HTTP_CR
+            &&  data[m_pos + 1] == HTTP_LF
+        )
+        {
+            m_pos += 2; // advance twice for the consumed values.
+            return ParseResult::COMPLETE;
+        }
+
+        // There must be some headers here, parse them!
+        while(true)
+        {
+            size_t name_start = m_pos;
+            size_t value_start;
+            // walk name_start forwards to left trim
+            while(name_start < total_length && std::isspace(data[name_start]))
+            {
+                ++name_start;
+            }
+
+            size_t name_end = name_start + 1; // first character of the name cannot be ':'
+            bool found_colon = false;
+            while(name_end < total_length)
+            {
+                if(data[name_end] == ':')
+                {
+                    value_start = name_end + 1; // grab value_start before walking name_end backwards for WS
+                    --name_end; // don't include ':' in the name
+                    found_colon = true;
+                    break; // while(name_end < total_length)
+                }
+                ++name_end;
+            }
+
+            // Never found the ':' token, we need more data.
+            if(!found_colon)
+            {
+                return ParseResult::INCOMPLETE;
+            }
+
+            // Walk name_end backwards to right trim.
+            while(std::isspace(data[name_end]))
+            {
+                --name_end;
+            }
+
+            // Walk value forwards to left trim
+            while(value_start < total_length && std::isspace(data[value_start]))
+            {
+                ++value_start;
+            }
+
+            // The parser has found the name of the header, now parse for the value.
+            size_t value_end = value_start;
+            bool found_crlf = false;
+            // This loop must check two characters at a time (CRLF!)
+            while(value_end + 1 < total_length)
+            {
+                if(data[value_end] == HTTP_CR && data[value_end + 1] == HTTP_LF)
+                {
+                    --value_end; // Found the end, do not include CRLF in the value.
+                    found_crlf = true;
+                    break; // while(value_end + 1 < total_length)
+                }
+                ++value_end; // we must only increment by 1 otherwise we could skip over a CR
+            }
+
+            if(!found_crlf)
+            {
+                return ParseResult::INCOMPLETE;
+            }
+
+            // Update the current position after finding the end of the header,
+            // since this loop expects to be on the first char its checking ADVANCE 3 times
+            m_pos = value_end + 3;
+
+            // Walk value end backwards to right trim
+            while(std::isspace(data[value_end]))
+            {
+                --value_end;
+            }
+
+            m_headers[m_header_count] = std::pair
+            {
+                std::string_view{&data[name_start], (name_end - name_start + 1)},
+                std::string_view{&data[value_start], (value_end - value_start + 1)}
+            };
+            ++m_header_count;
+
+            // If this header line end with CRLF then this request has no more headers.
+            if(
+                m_pos + 1 < data.length()
+                &&  data[m_pos] == HTTP_CR
+                &&  data[m_pos + 1] == HTTP_LF
+                )
+            {
+                m_pos += 2; // ADVANCE two times for the consumed values and setup for next parse stage
+                m_parse_state = ParseState::PARSED_HEADERS;
+                break; // while(true)
+            }
+        }
+    }
+
+    // There may or may not be a body
+    if(m_parse_state == ParseState::PARSED_HEADERS)
+    {
+        switch(m_body_type)
+        {
+            case BodyType::CHUNKED:
+                break;
+            case BodyType::CONTENT_LENGTH:
+                break;
+            case BodyType::END_OF_STREAM:
+            {
+                if (m_pos < data.length())
+                {
+                    // just update to as much data is possible, this isn't a super reliable method
+                    m_body = std::optional<std::string_view>{{&data[m_pos], (data.length() - m_pos)}};
+                    // Do not update m_parse_state, the user might
+                    // call again with more data to add into the body...
+                }
+            }
+                break;
+        }
     }
 
     return ParseResult::COMPLETE;
@@ -315,6 +458,30 @@ auto Request::GetUri() const -> std::string_view
 auto Request::GetVersion() const -> Version
 {
     return m_version;
+}
+
+auto Request::GetHeaderCount() const -> size_t
+{
+    return m_header_count;
+}
+
+auto Request::GetHeader(std::string_view name) const -> std::optional<std::string_view>
+{
+    for(size_t i = 0; i < m_header_count; ++i)
+    {
+        auto& [req_name, req_value] = m_headers[i];
+        if(liquid::string_view_icompare(name, req_name))
+        {
+            return std::optional<std::string_view>{req_value};
+        }
+    }
+
+    return std::optional<std::string_view>{};
+}
+
+auto Request::GetBody() const -> const std::optional<std::string_view>&
+{
+    return m_body;
 }
 
 } // namespace liquid::request
