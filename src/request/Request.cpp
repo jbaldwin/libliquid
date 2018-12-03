@@ -38,7 +38,7 @@ auto is_ws(char c) -> bool
     }
 }
 
-auto Request::Parse(std::string_view data) -> ParseResult
+auto Request::Parse(std::string& data) -> ParseResult
 {
     if(data.empty())
     {
@@ -512,8 +512,8 @@ auto Request::Parse(std::string_view data) -> ParseResult
                         if(m_pos + 2 < data_length)
                         {
                             // move the data into the correct position. this is major YIKES!
-                            char* data_start = const_cast<char*>(&data[m_body_start + m_content_length]);
-                            char* chunk_start = const_cast<char*>(&data[chunk_size_end + 2]);
+                            char* data_start = data.data() + (m_body_start + m_content_length);
+                            char* chunk_start = data.data() + (chunk_size_end + 2);
 
                             std::memmove(data_start, chunk_start, chunk_length);
                             m_content_length += chunk_length; // Keep track of the entire size though content length.

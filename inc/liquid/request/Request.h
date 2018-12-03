@@ -65,10 +65,10 @@ public:
      * will de-chunk the data.  That means the 'data' parameter is not truely const
      * and should be modifiable.
      *
-     * @param data The full HTTP request data.
+     * @param data The full HTTP request data.  If this is a chunked request, it will be mutated.
      * @return The current state of parsing the HTTP request data.
      */
-    auto Parse(std::string_view data) -> ParseResult;
+    auto Parse(std::string& data) -> ParseResult;
 
     /**
      * @return The current internal parse state (how far its gotten) for the current set of data.
