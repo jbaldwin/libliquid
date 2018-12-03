@@ -710,23 +710,64 @@ SCENARIO("Parsing a request with a Transfer-Encoding: chunked body.")
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
                 REQUIRE(request.GetHeaderCount() == 1);
                 REQUIRE(request.GetHeader("Transfer-Encoding").value() == "chunked");
-                std::string encoded_body =
-                    "4\r\n"
-                    "Wiki\r\n"
-                    "5\r\n"
-                    "pedia\r\n"
-                    "E\r\n"
-                    " in\r\n"
-                    "\r\n"
-                    "chunks.\r\n"
-                    "0\r\n"
-                    "\r\n";
-                REQUIRE(request.GetBody().value() == encoded_body);
-
-//                std::string decoded_body =
-//                    "Wikipedia in\r\n"
+//                std::string encoded_body =
+//                    "4\r\n"
+//                    "Wiki\r\n"
+//                    "5\r\n"
+//                    "pedia\r\n"
+//                    "E\r\n"
+//                    " in\r\n"
 //                    "\r\n"
-//                    "chunks.";
+//                    "chunks.\r\n"
+//                    "0\r\n"
+//                    "\r\n";
+                std::string decoded_body =
+                    "Wikipedia in\r\n"
+                    "\r\n"
+                    "chunks.";
+                REQUIRE(request.GetBody().value() == decoded_body);
+            }
+        }
+    }
+}
+
+SCENARIO("Parse PicoHTTPParser performance request.")
+{
+    GIVEN("The buffer")
+    {
+        std::string buffer =
+            "GET /cookies HTTP/1.1\r\n"
+            "Host: 127.0.0.1:8090\r\n"
+            "Connection: keep-alive\r\n"
+            "Cache-Control: max-age=0\r\n"
+            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
+            "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.56 Safari/537.17\r\n"
+            "Accept-Encoding: gzip,deflate,sdch\r\n"
+            "Accept-Language: en-US,en;q=0.8\r\n"
+            "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3\r\n"
+            "Cookie: name=wookie\r\n\r\n";
+
+        liquid::request::Request request{};
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(buffer);
+            THEN("We expect it to parse correctly.")
+            {
+                REQUIRE(result == liquid::request::ParseResult::COMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                REQUIRE(request.GetParseState() == liquid::request::ParseState::PARSED_HEADERS);
+                REQUIRE(request.GetUri() == "/cookies");
+                REQUIRE(request.GetVersion() == liquid::Version::V1_1);
+                REQUIRE(request.GetHeaderCount() == 9);
+                REQUIRE(request.GetHeader("Host").value() == "127.0.0.1:8090");
+                REQUIRE(request.GetHeader("Connection").value() == "keep-alive");
+                REQUIRE(request.GetHeader("Cache-Control").value() == "max-age=0");
+                REQUIRE(request.GetHeader("Accept").value() == "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+                REQUIRE(request.GetHeader("User-Agent").value() == "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.56 Safari/537.17");
+                REQUIRE(request.GetHeader("Accept-Encoding").value() == "gzip,deflate,sdch");
+                REQUIRE(request.GetHeader("Accept-Language").value() == "en-US,en;q=0.8");
+                REQUIRE(request.GetHeader("Accept-Charset").value() == "ISO-8859-1,utf-8;q=0.7,*;q=0.3");
+                REQUIRE(request.GetHeader("Cookie").value() == "name=wookie");
             }
         }
     }

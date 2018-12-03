@@ -58,6 +58,10 @@ public:
      * This parser will not 're-parse' previously parsed sections of data, e.g. once
      * headers are parsed they are never parsed a second time.
      *
+     * If the header Transfer-Encoding: chunked is received then the parser
+     * will de-chunk the data.  That means the 'data' parameter is not truely const
+     * and should be modifiable.
+     *
      * @param data The full HTTP request data.
      * @return The current state of parsing the HTTP request data.
      */

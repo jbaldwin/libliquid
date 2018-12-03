@@ -2,6 +2,7 @@
 #include "liquid/StringUtil.h"
 
 #include <charconv>
+#include <cstring>
 
 namespace liquid::request
 {
@@ -20,6 +21,8 @@ auto Request::Parse(std::string_view data) -> ParseResult
         return ParseResult::INCOMPLETE;
     }
 
+    size_t data_length = data.length();
+
     if(m_parse_state == ParseState::START)
     {
         switch(data[0])
@@ -28,7 +31,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
             case 'G':
             {
                 // do we have enough room to parse "G" "ET "?
-                if(m_pos + 3 < data.length())
+                if(m_pos + 3 < data_length)
                 {
                     EXPECT('E', ParseResult::METHOD_UNKNOWN);
                     EXPECT('T', ParseResult::METHOD_UNKNOWN);
@@ -47,7 +50,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
             case 'P':
             {
                 // we need to guarantee 1 character for which P method this is
-                if(m_pos + 1 < data.length())
+                if(m_pos + 1 < data_length)
                 {
                     // Only advance once for this check, since its multiple branches.
                     switch(data[++m_pos])
@@ -55,7 +58,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                         case 'O':
                         {
                             // "PO" "ST "
-                            if(m_pos + 3 < data.length())
+                            if(m_pos + 3 < data_length)
                             {
                                 EXPECT('S', ParseResult::METHOD_UNKNOWN);
                                 EXPECT('T', ParseResult::METHOD_UNKNOWN);
@@ -71,7 +74,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                         case 'U':
                         {
                             // "PU" "T "
-                            if(m_pos + 2 < data.length())
+                            if(m_pos + 2 < data_length)
                             {
                                 EXPECT('T', ParseResult::METHOD_UNKNOWN);
                                 EXPECT(HTTP_SP, ParseResult::METHOD_UNKNOWN);
@@ -86,7 +89,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                         case 'A':
                         {
                             // "PA" "TCH "
-                            if(m_pos + 4 < data.length())
+                            if(m_pos + 4 < data_length)
                             {
                                 EXPECT('T', ParseResult::METHOD_UNKNOWN);
                                 EXPECT('C', ParseResult::METHOD_UNKNOWN);
@@ -115,7 +118,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
             case 'H':
             {
                 // do we have enough room to parse "H ""EAD "?
-                if(m_pos + 4 < data.length())
+                if(m_pos + 4 < data_length)
                 {
                     EXPECT('E', ParseResult::METHOD_UNKNOWN);
                     EXPECT('A', ParseResult::METHOD_UNKNOWN);
@@ -133,7 +136,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
             case 'D':
             {
                 // do we have enough room to parse "D" "ELETE "?
-                if(m_pos + 6 < data.length())
+                if(m_pos + 6 < data_length)
                 {
                     EXPECT('E', ParseResult::METHOD_UNKNOWN);
                     EXPECT('L', ParseResult::METHOD_UNKNOWN);
@@ -153,7 +156,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
             case 'C':
             {
                 // do we have enough room to parse "C" "ONNECT "?
-                if(m_pos + 7 < data.length())
+                if(m_pos + 7 < data_length)
                 {
                     EXPECT('O', ParseResult::METHOD_UNKNOWN);
                     EXPECT('N', ParseResult::METHOD_UNKNOWN);
@@ -174,7 +177,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
             case 'O':
             {
                 // do we have enough room to parse "O" "PTIONS "?
-                if(m_pos + 7 < data.length())
+                if(m_pos + 7 < data_length)
                 {
                     EXPECT('P', ParseResult::METHOD_UNKNOWN);
                     EXPECT('T', ParseResult::METHOD_UNKNOWN);
@@ -196,7 +199,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
             {
                 // do we have enough room to parse "T" "RACE "?
 
-                if(m_pos + 5 < data.length())
+                if(m_pos + 5 < data_length)
                 {
                     EXPECT('R', ParseResult::METHOD_UNKNOWN);
                     EXPECT('A', ParseResult::METHOD_UNKNOWN);
@@ -223,7 +226,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
     if(m_parse_state == ParseState::PARSED_METHOD)
     {
         ADVANCE(); // Previous parse leaves us on the HTTP_SP token before the URI, advance past it.
-        size_t total_len = data.length();
+        size_t total_len = data_length;
         if(m_uri_start_pos == 0)
         {
             // Set the start pos once (subsequent Parse calls could have different m_pos!)
@@ -264,7 +267,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
 
     if(m_parse_state == ParseState::PARSED_URI)
     {
-        if(m_pos + 10 < data.length())
+        if(m_pos + 10 < data_length)
         {
             // This state expects to still be on the previous HTTP_SP so we can easily EXPECT()
             EXPECT('H', ParseResult::HTTP_VERSION_MALFORMED);
@@ -300,8 +303,6 @@ auto Request::Parse(std::string_view data) -> ParseResult
 
     if(m_parse_state == ParseState::PARSED_VERSION)
     {
-        size_t data_length = data.length();
-
         // missing empty line or headers
         if(data_length == m_pos)
         {
@@ -311,7 +312,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
         // If there are exactly 2 characters left and its the newline,
         // this request is complete as there are no headers.
         if(
-                m_pos + 2 == data.length()
+                m_pos + 2 == data_length
             &&  data[m_pos] == HTTP_CR
             &&  data[m_pos + 1] == HTTP_LF
         )
@@ -429,7 +430,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
 
             // If this header line end with CRLF then this request has no more headers.
             if(
-                m_pos + 1 < data.length()
+                m_pos + 1 < data_length
                 &&  data[m_pos] == HTTP_CR
                 &&  data[m_pos + 1] == HTTP_LF
                 )
@@ -449,12 +450,12 @@ auto Request::Parse(std::string_view data) -> ParseResult
             case BodyType::CHUNKED:
             {
                 // First time through record the start of the body for the full chunked body size.
-                if(m_body_start == 0)
+                if(!m_body.has_value())
                 {
                     m_body_start = m_pos;
+                    m_body.emplace(&data[m_pos], 0);
                 }
 
-                size_t data_length = data.length();
                 while(true)
                 {
                     size_t chunk_size_end = m_pos + 1;
@@ -484,6 +485,14 @@ auto Request::Parse(std::string_view data) -> ParseResult
                         m_pos = chunk_size_end + 1 + chunk_length;
                         if(m_pos + 2 < data_length)
                         {
+                            // move the data into the correct position. this is major YIKES!
+                            char* data_start = const_cast<char*>(&data[m_body_start + m_content_length]);
+                            char* chunk_start = const_cast<char*>(&data[chunk_size_end + 2]);
+
+                            std::memmove(data_start, chunk_start, chunk_length);
+                            m_content_length += chunk_length; // Keep track of the entire size though content length.
+                            m_body.emplace(&data[m_body_start], m_content_length);
+
                             EXPECT(HTTP_CR, ParseResult::CHUNK_MALFORMED);
                             EXPECT(HTTP_LF, ParseResult::CHUNK_MALFORMED);
                             ADVANCE(); // This chunk parser expects to be on the first byte of the chunk
@@ -497,9 +506,6 @@ auto Request::Parse(std::string_view data) -> ParseResult
                             m_pos = chunk_size_end + 1; // strip the \n trailing chunk_size_end
                             EXPECT(HTTP_CR, ParseResult::CHUNK_MALFORMED);
                             EXPECT(HTTP_LF, ParseResult::CHUNK_MALFORMED);
-                            // Theoretically the length should *always* be data.lenght(), but lets calculate
-                            // in the event there is some trailing data that shouldn't be there.
-                            m_body.emplace(&data[m_body_start], (chunk_size_end + 3) - m_body_start + 1);
                             m_parse_state = ParseState::PARSED_BODY;
                             break; // while(true)
                         }
@@ -515,7 +521,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                 break;
             case BodyType::CONTENT_LENGTH:
             {
-                if(m_pos + m_content_length >= data.length())
+                if(m_pos + m_content_length >= data_length)
                 {
                     m_body.emplace(&data[m_pos], m_content_length);
                     m_parse_state = ParseState::PARSED_BODY;
@@ -528,7 +534,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                 break;
             case BodyType::END_OF_STREAM:
             {
-                if (m_pos < data.length())
+                if (m_pos < data_length)
                 {
                     // just update to as much data is possible, this isn't a super reliable method
                     m_body.emplace(&data[m_pos], data.length() - m_pos);
@@ -573,7 +579,7 @@ auto Request::GetHeader(std::string_view name) const -> std::optional<std::strin
     for(size_t i = 0; i < m_header_count; ++i)
     {
         auto& [req_name, req_value] = m_headers[i];
-        if(liquid::string_view_icompare(name, req_name))
+        if(string_view_icompare(name, req_name))
         {
             return std::optional<std::string_view>{req_value};
         }
