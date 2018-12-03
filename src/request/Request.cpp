@@ -14,6 +14,30 @@ static constexpr char HTTP_LF = '\n';
 #define EXPECT(C, E) { if(data[++m_pos] != C) { return E; }}
 #define ADVANCE() { ++m_pos; }
 
+//[[gnu::noinline]]
+auto is_ws(char c) -> bool
+{
+//    space (0x20, ' ')
+//    form feed (0x0c, '\f')
+//    line feed (0x0a, '\n')
+//    carriage return (0x0d, '\r')
+//    horizontal tab (0x09, '\t')
+//    vertical tab (0x0b, '\v')
+
+    switch(c)
+    {
+        case ' ':
+        case '\f':
+        case '\n':
+        case '\r':
+        case '\t':
+        case '\v':
+            return true;
+        default:
+            return false;
+    }
+}
+
 auto Request::Parse(std::string_view data) -> ParseResult
 {
     if(data.empty())
@@ -327,7 +351,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
             size_t name_start = m_pos;
             size_t value_start;
             // walk name_start forwards to left trim
-            while(name_start < data_length && std::isspace(data[name_start]))
+            while(name_start < data_length && is_ws(data[name_start]))
             {
                 ++name_start;
             }
@@ -353,13 +377,13 @@ auto Request::Parse(std::string_view data) -> ParseResult
             }
 
             // Walk name_end backwards to right trim.
-            while(std::isspace(data[name_end]))
+            while(is_ws(data[name_end]))
             {
                 --name_end;
             }
 
             // Walk value forwards to left trim
-            while(value_start < data_length && std::isspace(data[value_start]))
+            while(value_start < data_length && is_ws(data[value_start]))
             {
                 ++value_start;
             }
@@ -389,7 +413,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
             m_pos = value_end + 3;
 
             // Walk value end backwards to right trim
-            while(std::isspace(data[value_end]))
+            while(is_ws(data[value_end]))
             {
                 --value_end;
             }
@@ -422,6 +446,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                     &&  value.length() > 0
                 )
                 {
+                    m_content_length = 0; // in the event from_chars fails, we'll get no body
                     std::from_chars(value.data(), value.data() + value.length(), m_content_length, 10);
                     m_body_type = BodyType::CONTENT_LENGTH;
                 }
@@ -453,6 +478,7 @@ auto Request::Parse(std::string_view data) -> ParseResult
                 if(!m_body.has_value())
                 {
                     m_body_start = m_pos;
+                    m_content_length = 0; // leverage this for the decoded length
                     m_body.emplace(&data[m_pos], 0);
                 }
 
