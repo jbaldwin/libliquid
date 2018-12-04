@@ -567,9 +567,9 @@ SCENARIO("Parsing multiple header lines with arbitrary whitespace in the headers
     {
         std::string request_data =
             "GET /derp.html HTTP/1.1\r\n"
-            "        Connection  :  keep-alive\r\n"
-            "  Accept:  */*\t  \r\n"
-            "    \t     X-Content-Length      :        0   \r\n"
+            "Connection:  keep-alive\r\n"
+            "Accept:  */*\t  \r\n"
+            "X-Content-Length:        0   \r\n"
             "\r\n";
         liquid::request::Request request{};
 

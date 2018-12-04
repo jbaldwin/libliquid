@@ -36,7 +36,7 @@ else() # "Release"
     message("${PROJECT_NAME} is building Release")
     target_compile_options(
         ${PROJECT_NAME} PRIVATE
-        -O2
+        -O3
         -g
         -gdwarf-2
     )

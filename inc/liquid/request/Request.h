@@ -12,6 +12,7 @@ namespace liquid::request
 
 enum class ParseResult
 {
+    CONTINUE,
     COMPLETE,
     INCOMPLETE,
     METHOD_UNKNOWN,
@@ -69,6 +70,19 @@ public:
      * @return The current state of parsing the HTTP request data.
      */
     auto Parse(std::string& data) -> ParseResult;
+
+private:
+    auto parseMethod(std::string& data) -> ParseResult;
+    auto parseUri(std::string& data) -> ParseResult;
+    auto parseVersion(std::string& data) -> ParseResult;
+    auto parseHeaders(std::string& data) -> ParseResult;
+    auto parseBody(std::string& data) -> ParseResult;
+public:
+
+    /**
+     * Resets the parser to default constructed state to parse another request.
+     */
+    auto Reset() -> void;
 
     /**
      * @return The current internal parse state (how far its gotten) for the current set of data.

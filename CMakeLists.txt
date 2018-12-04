@@ -16,7 +16,6 @@ set(LIBLIQUID_SOURCE_FILES
 
     inc/liquid/Liquid.h
     inc/liquid/Method.h src/Method.cpp
-    inc/liquid/StringUtil.h src/StringUtil.cpp
     inc/liquid/Version.h src/Version.cpp
 )
 
@@ -56,7 +55,7 @@ else() # "Release"
     message("${PROJECT_NAME} is building Release")
     target_compile_options(
         ${PROJECT_NAME} PRIVATE
-        -O2
+        -O3
         -g
         -gdwarf-2
     )
