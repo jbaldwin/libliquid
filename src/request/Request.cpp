@@ -13,6 +13,7 @@ static constexpr char HTTP_HTAB = '\t';
 
 #define EXPECT(C, E) { if(data[++m_pos] != C) { return E; }}
 #define ADVANCE() { ++m_pos; }
+#define IS_PRINTABLE_ASCII(c) ((unsigned char)(c)-040u < 0137u)
 
 /**
  * Converts a char from uppercase to lowercase ascii.
@@ -437,27 +438,42 @@ auto Request::parseHeaders(std::string& data) -> ParseResult
         size_t name_start = m_pos;
         size_t value_start;
 
-        size_t name_end = name_start + 1; // first character of the name cannot be ':'
-        bool found_colon = false;
-        while(name_end < data_length)
+        size_t name_end = name_start;
+#define CHECK_FOR_COLON() { if(data[++name_end] == ':') break; }
+
+        // lets check 8 chars in a row!
+        while(name_end + 8 < data_length)
         {
-            if(data[name_end] == ':')
+            CHECK_FOR_COLON();
+            CHECK_FOR_COLON();
+            CHECK_FOR_COLON();
+            CHECK_FOR_COLON();
+            CHECK_FOR_COLON();
+            CHECK_FOR_COLON();
+            CHECK_FOR_COLON();
+            CHECK_FOR_COLON();
+        }
+#undef CHECK_FOR_COLON
+
+        // go one by one...
+        while(true)
+        {
+            if(name_end < data_length)
             {
-                value_start = name_end + 1; // grab value_start before walking name_end backwards for WS
-                --name_end; // don't include ':' in the name
-                found_colon = true;
-                break; // while(name_end < data_length)
+                if(data[name_end] == ':')
+                {
+                    value_start = name_end + 1;
+                    break; // while(true);p
+                }
+                ++name_end;
             }
-            ++name_end;
+            else
+            {
+                return ParseResult::INCOMPLETE;
+            }
         }
 
-        // Never found the ':' token, we need more data.
-        if(!found_colon)
-        {
-            return ParseResult::INCOMPLETE;
-        }
-
-        // Walk value forwards to left trim
+        // Walk value forwards to left trim, this is unlikely to be more than 1 HTTP_SP or HTTP_HTAB
         while(value_start < data_length && is_ws(data[value_start]))
         {
             ++value_start;
@@ -465,17 +481,29 @@ auto Request::parseHeaders(std::string& data) -> ParseResult
 
         // The parser has found the name of the header, now parse for the value.
         size_t value_end = value_start;
-        bool found_crlf = false;
-        // This loop must check two characters at a time (CRLF!)
-        while(value_end + 1 < data_length)
+        while(value_end + 8 < data_length)
         {
-            if(data[value_end] == HTTP_CR && data[value_end + 1] == HTTP_LF)
+            if(data[value_end] == HTTP_CR) break;
+            if(data[++value_end] == HTTP_CR) break;
+            if(data[++value_end] == HTTP_CR) break;
+            if(data[++value_end] == HTTP_CR) break;
+            if(data[++value_end] == HTTP_CR) break;
+            if(data[++value_end] == HTTP_CR) break;
+            if(data[++value_end] == HTTP_CR) break;
+            if(data[++value_end] == HTTP_CR) break;
+            ++value_end;
+        }
+
+        // check one by one or until incomplete
+        bool found_crlf = false;
+        while(value_end < data_length)
+        {
+            if(data[value_end++] == HTTP_CR && value_end < data_length && data[value_end] == HTTP_LF)
             {
-                --value_end; // Found the end, do not include CRLF in the value.
+                value_end -= 2;
                 found_crlf = true;
-                break; // while(value_end + 1 < data_length)
+                break;
             }
-            ++value_end; // we must only increment by 1 otherwise we could skip over a CR
         }
 
         if(!found_crlf)
@@ -501,7 +529,7 @@ auto Request::parseHeaders(std::string& data) -> ParseResult
 
         m_headers[m_header_count] =
             {
-                {&data[name_start], (name_end - name_start + 1)},
+                {&data[name_start], (name_end - name_start)},
                 {&data[value_start], (value_end - value_start + 1)}
             };
         // Before continuing, check to see if any of these headers give an indication if
@@ -712,3 +740,4 @@ auto Request::GetBody() const -> const std::optional<std::string_view>&
 }
 
 } // namespace liquid::request
+
