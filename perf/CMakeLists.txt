@@ -6,7 +6,7 @@ set(LIBLIQUID_PERF_SOURCE_FILES
 )
 
 add_executable(${PROJECT_NAME} ${LIBLIQUID_PERF_SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE libliquid)
+target_link_libraries(${PROJECT_NAME} PRIVATE liquid)
 
 target_compile_options(${PROJECT_NAME} PRIVATE
     -Wall
