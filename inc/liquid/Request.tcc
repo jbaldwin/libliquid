@@ -1,8 +1,8 @@
 #pragma once
 
-#include "liquid/request/Request.h"
+#include "liquid/Request.h"
 
-namespace liquid::request
+namespace liquid
 {
 
 template<typename Functor>
@@ -15,4 +15,4 @@ auto Request::ForEachHeader(Functor&& functor) -> void
     }
 }
 
-} // namespace liquid::request
+} // namespace liquid

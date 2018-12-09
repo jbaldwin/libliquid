@@ -1,9 +1,9 @@
-#include "liquid/request/Request.h"
+#include "liquid/Request.h"
 
 #include <charconv>
 #include <cstring>
 
-namespace liquid::request
+namespace liquid
 {
 
 static constexpr char HTTP_SP = ' ';
@@ -13,7 +13,6 @@ static constexpr char HTTP_HTAB = '\t';
 
 #define EXPECT(C, E) { if(data[++m_pos] != C) { return E; }}
 #define ADVANCE() { ++m_pos; }
-#define IS_PRINTABLE_ASCII(c) ((unsigned char)(c)-040u < 0137u)
 
 /**
  * Converts a char from uppercase to lowercase ascii.
@@ -798,5 +797,5 @@ auto Request::GetBody() const -> const std::optional<std::string_view>&
     return m_body;
 }
 
-} // namespace liquid::request
+} // namespace liquid
 

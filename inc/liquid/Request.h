@@ -7,7 +7,7 @@
 #include <optional>
 #include <array>
 
-namespace liquid::request
+namespace liquid
 {
 
 enum class ParseResult
@@ -164,6 +164,6 @@ private:
     std::optional<std::string_view> m_body;
 };
 
-} // namespace liquid::request
+} // namespace liquid
 
-#include "liquid/request/Request.tcc"
+#include "liquid/Request.tcc"
