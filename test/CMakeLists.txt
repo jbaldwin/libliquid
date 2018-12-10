@@ -5,6 +5,7 @@ set(LIBLIQUID_TEST_SOURCE_FILES
     Catch2.h
     main.cpp
     TestParseRequest.cpp
+    TestSimd.cpp
 )
 
 add_executable(${PROJECT_NAME} ${LIBLIQUID_TEST_SOURCE_FILES})
@@ -18,6 +19,10 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -Wpedantic
     -pedantic-errors
 )
+
+if(USE_SSE42)
+    target_compile_options(${PROJECT_NAME} PRIVATE -msse4.2)
+endif()
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     message("${PROJECT_NAME} is building Debug")

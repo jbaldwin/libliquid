@@ -3,6 +3,10 @@
 #include <charconv>
 #include <cstring>
 
+#ifdef __SSE4_2__
+#include <immintrin.h>
+#endif
+
 namespace liquid
 {
 
@@ -14,26 +18,7 @@ static constexpr char HTTP_HTAB = '\t';
 #define EXPECT(C, E) { if(data[++m_pos] != C) { return E; }}
 #define ADVANCE() { ++m_pos; }
 
-/**
- * Converts a char from uppercase to lowercase ascii.
- * @param c
- * @return
- */
-inline auto tolower_ascii(int c) -> int
-{
-    if(c >= 65 && c <= 90)
-    {
-        return c + 32;
-    }
-    return c;
-}
-
-inline auto tolower_ascii2(int c) -> int
-{
-    return c + ((static_cast<unsigned int>(c - 'A') < 26u) << 5);
-}
-
-static constexpr int tolower_table_add[] = {
+static constexpr int TOLOWER_TABLE_ADD[] = {
     0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -53,34 +38,15 @@ static constexpr int tolower_table_add[] = {
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 };
 
+/**
+ * Uses a lookup table to lowercase the incoming char.
+ * Does not do bounds checking, e.g int > 255 could crash!
+ * @param c ASCII to uppercase.
+ * @return Uppercase'ed 'c'.
+ */
 inline auto tolower_asciitable_add(int c) -> int
 {
-    return c + tolower_table_add[c];
-}
-
-static constexpr unsigned char tolower_table[] = {
-      0,
-      1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
-     17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
-     33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
-     49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64,
-     97, 98, 99,100,101,102,103,104,105,106,107,108,109,110,111,112,
-    113,114,115,116,117,118,119,120,121,122, 91, 92, 93, 94, 95, 96,
-     97, 98, 99,100,101,102,103,104,105,106,107,108,109,110,111,112,
-    113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,
-    129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,
-    145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,
-    161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,
-    177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,
-    193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,
-    209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,224,
-    225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,
-    241,242,243,244,245,246,247,248,249,250,251,252,253,254,255
-};
-
-inline auto tolower_asciitable(int c) -> int
-{
-    return tolower_table[c];
+    return c + TOLOWER_TABLE_ADD[c];
 }
 
 /**
@@ -91,19 +57,15 @@ inline auto tolower_asciitable(int c) -> int
  */
 auto string_view_icompare(std::string_view a, std::string_view b) -> bool
 {
-    if(a.length() != b.length())
+    const size_t len = a.length();
+    if(len != b.length())
     {
         return false;
     }
 
-    const size_t len = a.length();
     for(size_t i = 0; i < len; ++i)
     {
-//        if(std::tolower(a[i]) != std::tolower(b[i]))
-//        if(tolower_ascii(a[i]) != tolower_ascii(b[i]))
-//        if(tolower_ascii2(a[i]) != tolower_ascii2(b[i]))
         if(tolower_asciitable_add(a[i]) != tolower_asciitable_add(b[i]))
-//        if(tolower_asciitable(a[i]) != tolower_asciitable(b[i]))
         {
             return false;
         }
@@ -112,7 +74,32 @@ auto string_view_icompare(std::string_view a, std::string_view b) -> bool
     return true;
 }
 
-auto is_ws(char c) -> bool
+/**
+ * Case insenstive comparison of two string views.  Assumes 'b' is already lowercased.
+ * @param a String view A to compare, no assumption made on 'tolower'.
+ * @param b String view B to compare, assumes all characters are already 'tolower'.
+ * @return True if a == b with tolower(a) == b.
+ */
+auto internal_string_view_icompare(std::string_view a, std::string_view b) -> bool
+{
+    const size_t len = a.length();
+    if(len != b.length())
+    {
+        return false;
+    }
+
+    for(size_t i = 0; i < len; ++i)
+    {
+        if(tolower_asciitable_add(a[i]) != b[i])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+auto is_http_ws(char c) -> bool
 {
     switch(c)
     {
@@ -496,6 +483,34 @@ auto Request::parseHeaders(std::string& data) -> ParseResult
         size_t name_start = m_pos;
         size_t value_start;
 
+#ifdef __SSE4_2__
+        static const int sse_cmp_mode = _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ORDERED | _SIDD_LEAST_SIGNIFICANT;
+        static const unsigned char colon_delim[] = ":";
+        size_t name_end = name_start;
+        ssize_t remaining_bytes = data_length - name_end;
+        bool found_colon = false;
+        while(remaining_bytes > 0)
+        {
+            const ssize_t len = (remaining_bytes > 16) ? 16 : remaining_bytes;
+            const __m128i simd_a = _mm_loadu_si128((__m128i*)&data[name_end]);
+            const __m128i simd_b = _mm_loadu_si128((__m128i*)&colon_delim[0]);
+            int result = _mm_cmpestri(simd_b, 1, simd_a, len, sse_cmp_mode);
+            if(result != 16)
+            {
+                name_end += result;
+                value_start = name_end + 1;
+                found_colon = true;
+                break; // while(remaining_bytes > 0)
+            }
+            name_end += 16;
+            remaining_bytes = data_length - name_end;
+        }
+
+        if(!found_colon)
+        {
+            return ParseResult::INCOMPLETE;
+        }
+#else
         size_t name_end = name_start;
 #define CHECK_FOR_COLON() { if(data[++name_end] == ':') break; }
 
@@ -521,7 +536,7 @@ auto Request::parseHeaders(std::string& data) -> ParseResult
                 if(data[name_end] == ':')
                 {
                     value_start = name_end + 1;
-                    break; // while(true);p
+                    break; // while(true);
                 }
                 ++name_end;
             }
@@ -530,14 +545,36 @@ auto Request::parseHeaders(std::string& data) -> ParseResult
                 return ParseResult::INCOMPLETE;
             }
         }
+#endif
 
         // Walk value forwards to left trim, this is unlikely to be more than 1 HTTP_SP or HTTP_HTAB
-        while(value_start < data_length && is_ws(data[value_start]))
+        while(value_start < data_length && is_http_ws(data[value_start]))
         {
             ++value_start;
         }
 
         // The parser has found the name of the header, now parse for the value.
+#ifdef __SSE4_2__
+        static const unsigned char crlf_delim[] = "\r\n";
+        size_t value_end = value_start;
+        bool found_crlf = false;
+        remaining_bytes = data_length - value_end;
+        while(remaining_bytes > 0)
+        {
+            const ssize_t len = (remaining_bytes >= 16) ? 16 : remaining_bytes;
+            const __m128i simd_a = _mm_loadu_si128((__m128i*)&data[value_end]);
+            const __m128i simd_b = _mm_loadu_si128((__m128i*)&crlf_delim[0]);
+            int result = _mm_cmpestri(simd_b, 2, simd_a , len, sse_cmp_mode);
+            if(result != 16)
+            {
+                value_end += static_cast<size_t>(result) - 1;
+                found_crlf = true;
+                break; // while(remaining_bytes > 0)
+            }
+            value_end += 16;
+            remaining_bytes = data_length - value_end;
+        }
+#else
         size_t value_end = value_start;
         while(value_end + 8 < data_length)
         {
@@ -563,6 +600,7 @@ auto Request::parseHeaders(std::string& data) -> ParseResult
                 break;
             }
         }
+#endif
 
         if(!found_crlf)
         {
@@ -574,7 +612,7 @@ auto Request::parseHeaders(std::string& data) -> ParseResult
         m_pos = value_end + 3;
 
         // Walk value end backwards to right trim
-        while(is_ws(data[value_end]))
+        while(is_http_ws(data[value_end]))
         {
             --value_end;
         }
@@ -596,14 +634,14 @@ auto Request::parseHeaders(std::string& data) -> ParseResult
         {
             auto& [name, value] = m_headers[m_header_count];
             if(
-                    string_view_icompare(name, "Transfer-Encoding")
-                &&  string_view_icompare(value, "chunked")
+                    internal_string_view_icompare(name, "transfer-encoding")
+                &&  internal_string_view_icompare(value, "chunked")
                 )
             {
                 m_body_type = BodyType::CHUNKED;
             }
             else if(
-                    string_view_icompare(name, "Content-Length")
+                    internal_string_view_icompare(name, "content-length")
                 &&  value.length() > 0
                 )
             {

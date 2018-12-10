@@ -3,6 +3,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 project(liquid)
 
+option(USE_SSE42 "Build with SSE4.2 instructions." ON)
+
 set(PROJECT_LIBRARY_DEPS
 
 )
@@ -34,6 +36,10 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -Wpedantic
     -pedantic-errors
 )
+
+if(USE_SSE42)
+    target_compile_options(${PROJECT_NAME} PRIVATE -msse4.2)
+endif()
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     message("${PROJECT_NAME} is building Debug")

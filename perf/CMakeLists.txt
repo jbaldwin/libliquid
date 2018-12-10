@@ -17,6 +17,10 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -pedantic-errors
 )
 
+if(USE_SSE42)
+    target_compile_options(${PROJECT_NAME} PRIVATE -msse4.2)
+endif()
+
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     message("${PROJECT_NAME} is building Debug")
     target_compile_options(
