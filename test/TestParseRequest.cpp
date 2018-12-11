@@ -1,9 +1,9 @@
 #include "Catch2.h"
-#include "liquid/Request.h"
+#include "liquid/Parser.h"
 
 SCENARIO("Parsing an empty string.")
 {
-    GIVEN("An empty HTTP Request data.")
+    GIVEN("An empty HTTP Parser data.")
     {
         std::string request_data{};
         liquid::Request request{};
@@ -13,8 +13,8 @@ SCENARIO("Parsing an empty string.")
             auto result = request.Parse(request_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
-                REQUIRE(request.GetParseState() == liquid::ParseState::START);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::START);
             }
         }
     }
@@ -22,7 +22,7 @@ SCENARIO("Parsing an empty string.")
 
 SCENARIO("Parsing GET Method")
 {
-    GIVEN("A GET HTTP Request")
+    GIVEN("A GET HTTP Parser")
     {
         std::string request_data = "GET ";
         liquid::Request request{};
@@ -32,14 +32,14 @@ SCENARIO("Parsing GET Method")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_METHOD);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_METHOD);
             }
         }
     }
 
-    GIVEN("An incomplete GET HTTP Request")
+    GIVEN("An incomplete GET HTTP Parser")
     {
         std::string request_data = "G";
         liquid::Request request{};
@@ -49,8 +49,8 @@ SCENARIO("Parsing GET Method")
             auto result = request.Parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
-                REQUIRE(request.GetParseState() == liquid::ParseState::START);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::START);
             }
         }
 
@@ -60,8 +60,8 @@ SCENARIO("Parsing GET Method")
             auto result = request.Parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
-                REQUIRE(request.GetParseState() == liquid::ParseState::START);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::START);
             }
         }
 
@@ -71,8 +71,8 @@ SCENARIO("Parsing GET Method")
             auto result = request.Parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
-                REQUIRE(request.GetParseState() == liquid::ParseState::START);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::START);
             }
         }
 
@@ -82,9 +82,9 @@ SCENARIO("Parsing GET Method")
             auto result = request.Parse(request_data);
             THEN("We expect the parser to return INCOMPLETE with method GET")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_METHOD);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_METHOD);
             }
         }
     }
@@ -92,7 +92,7 @@ SCENARIO("Parsing GET Method")
 
 SCENARIO("Parsing POST Method")
 {
-    GIVEN("A POST HTTP Request")
+    GIVEN("A POST HTTP Parser")
     {
         std::string request_data = "POST ";
         liquid::Request request{};
@@ -102,13 +102,13 @@ SCENARIO("Parsing POST Method")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be POST")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::POST);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_METHOD);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_METHOD);
             }
         }
     }
-    GIVEN("An incomplete POST HTTP Request")
+    GIVEN("An incomplete POST HTTP Parser")
     {
         std::string request_data = "P";
         liquid::Request request{};
@@ -118,8 +118,8 @@ SCENARIO("Parsing POST Method")
             auto result = request.Parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
-                REQUIRE(request.GetParseState() == liquid::ParseState::START);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::START);
             }
         }
 
@@ -129,8 +129,8 @@ SCENARIO("Parsing POST Method")
             auto result = request.Parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
-                REQUIRE(request.GetParseState() == liquid::ParseState::START);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::START);
             }
         }
 
@@ -140,8 +140,8 @@ SCENARIO("Parsing POST Method")
             auto result = request.Parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
-                REQUIRE(request.GetParseState() == liquid::ParseState::START);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::START);
             }
         }
 
@@ -151,8 +151,8 @@ SCENARIO("Parsing POST Method")
             auto result = request.Parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
-                REQUIRE(request.GetParseState() == liquid::ParseState::START);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::START);
             }
         }
 
@@ -162,9 +162,9 @@ SCENARIO("Parsing POST Method")
             auto result = request.Parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::POST);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_METHOD);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_METHOD);
             }
         }
     }
@@ -172,7 +172,7 @@ SCENARIO("Parsing POST Method")
 
 SCENARIO("Parsing PUT Method")
 {
-    GIVEN("A PUT HTTP Request")
+    GIVEN("A PUT HTTP Parser")
     {
         std::string request_data = "PUT ";
         liquid::Request request{};
@@ -182,9 +182,9 @@ SCENARIO("Parsing PUT Method")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be PUT")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::PUT);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_METHOD);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_METHOD);
             }
         }
     }
@@ -192,7 +192,7 @@ SCENARIO("Parsing PUT Method")
 
 SCENARIO("Parsing PATCH Method")
 {
-    GIVEN("A PATCH HTTP Request")
+    GIVEN("A PATCH HTTP Parser")
     {
         std::string request_data = "PATCH ";
         liquid::Request request{};
@@ -202,9 +202,9 @@ SCENARIO("Parsing PATCH Method")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be PATCH")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::PATCH);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_METHOD);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_METHOD);
             }
         }
     }
@@ -212,7 +212,7 @@ SCENARIO("Parsing PATCH Method")
 
 SCENARIO("Parsing HEAD Method")
 {
-    GIVEN("A HEAD HTTP Request")
+    GIVEN("A HEAD HTTP Parser")
     {
         std::string request_data = "HEAD ";
         liquid::Request request{};
@@ -222,9 +222,9 @@ SCENARIO("Parsing HEAD Method")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be HEAD")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::HEAD);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_METHOD);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_METHOD);
             }
         }
     }
@@ -232,7 +232,7 @@ SCENARIO("Parsing HEAD Method")
 
 SCENARIO("Parsing DELETE Method")
 {
-    GIVEN("A DELETE HTTP Request")
+    GIVEN("A DELETE HTTP Parser")
     {
         std::string request_data = "DELETE ";
         liquid::Request request{};
@@ -242,9 +242,9 @@ SCENARIO("Parsing DELETE Method")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be DELETE")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::DELETE);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_METHOD);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_METHOD);
             }
         }
     }
@@ -262,9 +262,9 @@ SCENARIO("Parsing a complete URI")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_URI);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_URI);
                 REQUIRE(request.GetUri() == "/derp.html");
             }
         }
@@ -283,9 +283,9 @@ SCENARIO("Parsing an incomplete URI")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and not have parsed the URI yet")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_METHOD);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_METHOD);
             }
         }
 
@@ -295,9 +295,9 @@ SCENARIO("Parsing an incomplete URI")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and not have parsed the URI yet")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_METHOD);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_METHOD);
             }
         }
 
@@ -307,9 +307,9 @@ SCENARIO("Parsing an incomplete URI")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and parsed the URI")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_URI);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_URI);
                 REQUIRE(request.GetUri() == "/derp.html?flerpity=merpity");
             }
         }
@@ -318,7 +318,7 @@ SCENARIO("Parsing an incomplete URI")
 
 SCENARIO("Parsing a complete HTTP Version")
 {
-    GIVEN("A complete Request-Line")
+    GIVEN("A complete Parser-Line")
     {
         std::string request_data = "GET /derp.html HTTP/1.0\r\n";
         liquid::Request request{};
@@ -328,9 +328,9 @@ SCENARIO("Parsing a complete HTTP Version")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_VERSION);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_VERSION);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_0);
             }
@@ -340,7 +340,7 @@ SCENARIO("Parsing a complete HTTP Version")
 
 SCENARIO("Parsing an incomplete HTTP Version")
 {
-    GIVEN("An complete Request-Line")
+    GIVEN("An complete Parser-Line")
     {
         std::string request_data = "GET /derp.html HTTP/";
         liquid::Request request{};
@@ -350,9 +350,9 @@ SCENARIO("Parsing an incomplete HTTP Version")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI but no version yet")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_URI);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_URI);
                 REQUIRE(request.GetUri() == "/derp.html");
             }
         }
@@ -363,9 +363,9 @@ SCENARIO("Parsing an incomplete HTTP Version")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI but no version yet")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_URI);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_URI);
                 REQUIRE(request.GetUri() == "/derp.html");
             }
         }
@@ -376,9 +376,9 @@ SCENARIO("Parsing an incomplete HTTP Version")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI but no version yet")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_URI);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_URI);
                 REQUIRE(request.GetUri() == "/derp.html");
             }
         }
@@ -389,9 +389,9 @@ SCENARIO("Parsing an incomplete HTTP Version")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI but no version yet")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_URI);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_URI);
                 REQUIRE(request.GetUri() == "/derp.html");
             }
         }
@@ -402,9 +402,9 @@ SCENARIO("Parsing an incomplete HTTP Version")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI but no version yet")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_URI);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_URI);
                 REQUIRE(request.GetUri() == "/derp.html");
             }
         }
@@ -415,9 +415,9 @@ SCENARIO("Parsing an incomplete HTTP Version")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI and have a version")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_VERSION);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_VERSION);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
             }
@@ -429,9 +429,9 @@ SCENARIO("Parsing an incomplete HTTP Version")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI and have a version and a complete request.")
             {
-                REQUIRE(result == liquid::ParseResult::COMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::COMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_VERSION);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_VERSION);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
             }
@@ -441,7 +441,7 @@ SCENARIO("Parsing an incomplete HTTP Version")
 
 SCENARIO("Parsing a header line.")
 {
-    GIVEN("A complete Request-Line")
+    GIVEN("A complete Parser-Line")
     {
         std::string request_data = "GET /derp.html HTTP/1.1\r\nConnection: keep-alive\r\n\r\n";
         liquid::Request request{};
@@ -451,9 +451,9 @@ SCENARIO("Parsing a header line.")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI")
             {
-                REQUIRE(result == liquid::ParseResult::COMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::COMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_HEADERS);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_HEADERS);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
                 REQUIRE(request.GetHeaderCount() == 1);
@@ -465,7 +465,7 @@ SCENARIO("Parsing a header line.")
 
 SCENARIO("Parsing multiple header lines.")
 {
-    GIVEN("A complete Request-Line")
+    GIVEN("A complete Parser-Line")
     {
         std::string request_data =
             "GET /derp.html HTTP/1.1\r\n"
@@ -480,9 +480,9 @@ SCENARIO("Parsing multiple header lines.")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI")
             {
-                REQUIRE(result == liquid::ParseResult::COMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::COMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_HEADERS);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_HEADERS);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
                 REQUIRE(request.GetHeaderCount() == 3);
@@ -496,7 +496,7 @@ SCENARIO("Parsing multiple header lines.")
 
 SCENARIO("Parsing multiple incomplete header lines.")
 {
-    GIVEN("A complete Request-Line")
+    GIVEN("A complete Parser-Line")
     {
         std::string request_data =
             "GET /derp.html HTTP/1.1\r\n"
@@ -508,9 +508,9 @@ SCENARIO("Parsing multiple incomplete header lines.")
             auto result = request.Parse(request_data);
             THEN("We expect to have parsed through the version.")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_VERSION);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_VERSION);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
                 REQUIRE(request.GetHeaderCount() == 0);
@@ -526,9 +526,9 @@ SCENARIO("Parsing multiple incomplete header lines.")
             auto result = request.Parse(request_data);
             THEN("We expect to have parsed a single header.")
             {
-                REQUIRE(result == liquid::ParseResult::INCOMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::INCOMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_VERSION);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_VERSION);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
                 REQUIRE(request.GetHeaderCount() == 1);
@@ -546,10 +546,10 @@ SCENARIO("Parsing multiple incomplete header lines.")
             auto result = request.Parse(request_data);
             THEN("We expect to complete parsing the headers.")
             {
-                REQUIRE(result == liquid::ParseResult::COMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::COMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
                 // we've got a content length so a body will show up even if its empty
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_BODY);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_BODY);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
                 REQUIRE(request.GetHeaderCount() == 3);
@@ -563,7 +563,7 @@ SCENARIO("Parsing multiple incomplete header lines.")
 
 SCENARIO("Parsing multiple header lines with arbitrary whitespace in the headers.")
 {
-    GIVEN("A complete Request-Line")
+    GIVEN("A complete Parser-Line")
     {
         std::string request_data =
             "GET /derp.html HTTP/1.1\r\n"
@@ -578,9 +578,9 @@ SCENARIO("Parsing multiple header lines with arbitrary whitespace in the headers
             auto result = request.Parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI")
             {
-                REQUIRE(result == liquid::ParseResult::COMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::COMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_HEADERS);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_HEADERS);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
                 REQUIRE(request.GetHeaderCount() == 3);
@@ -609,11 +609,11 @@ SCENARIO("Parsing a request with an END OF STREAM body.")
             auto result = request.Parse(request_data);
             THEN("We expect the body to be parsed.")
             {
-                REQUIRE(result == liquid::ParseResult::COMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::COMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::POST);
                 // This looks incorrect, but since END OF STREAM cannot be determined by the parser
                 // it never marks this 'body' method as complete so a subsequent call can pickup more data.
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_HEADERS);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_HEADERS);
                 REQUIRE(request.GetUri() == "/derp?key=flerp");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
                 REQUIRE(request.GetHeaderCount() == 2);
@@ -629,11 +629,11 @@ SCENARIO("Parsing a request with an END OF STREAM body.")
             auto result = request.Parse(request_data);
             THEN("We expect the body to be parsed.")
             {
-                REQUIRE(result == liquid::ParseResult::COMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::COMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::POST);
                 // This looks incorrect, but since END OF STREAM cannot be determined by the parser
                 // it never marks this 'body' method as complete so a subsequent call can pickup more data.
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_HEADERS);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_HEADERS);
                 REQUIRE(request.GetUri() == "/derp?key=flerp");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
                 REQUIRE(request.GetHeaderCount() == 2);
@@ -663,9 +663,9 @@ SCENARIO("Parsing a request with a Content-Length body.")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be POST and have a parsed URI and a full body.")
             {
-                REQUIRE(result == liquid::ParseResult::COMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::COMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::POST);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_BODY);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_BODY);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
                 REQUIRE(request.GetHeaderCount() == 3);
@@ -703,9 +703,9 @@ SCENARIO("Parsing a request with a Transfer-Encoding: chunked body.")
             auto result = request.Parse(request_data);
             THEN("We expect the method to be POST with a chunked encoded body.")
             {
-                REQUIRE(result == liquid::ParseResult::COMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::COMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::POST);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_BODY);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_BODY);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
                 REQUIRE(request.GetHeaderCount() == 1);
@@ -753,9 +753,9 @@ SCENARIO("Parse PicoHTTPParser performance request.")
             auto result = request.Parse(buffer);
             THEN("We expect it to parse correctly.")
             {
-                REQUIRE(result == liquid::ParseResult::COMPLETE);
+                REQUIRE(result == liquid::RequestParseResult::COMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::GET);
-                REQUIRE(request.GetParseState() == liquid::ParseState::PARSED_HEADERS);
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_HEADERS);
                 REQUIRE(request.GetUri() == "/cookies");
                 REQUIRE(request.GetVersion() == liquid::Version::V1_1);
                 REQUIRE(request.GetHeaderCount() == 9);

@@ -16,7 +16,7 @@ set(SYSTEM_LIBRARY_DEPS
 set(LIBLIQUID_SOURCE_FILES
     inc/liquid/Liquid.h
     inc/liquid/Method.h src/Method.cpp
-    inc/liquid/Request.h inc/liquid/Request.tcc src/Request.cpp
+    inc/liquid/Parser.h inc/liquid/Parser.tcc src/Parser.cpp
     inc/liquid/Version.h src/Version.cpp
 )
 
