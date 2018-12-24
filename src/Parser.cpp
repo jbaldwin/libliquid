@@ -254,11 +254,12 @@ static auto parse_request_headers(
     {
         size_t name_start = m_pos;
         size_t value_start;
+        size_t name_end = name_start;
 
 #ifdef __SSE4_2__
         static const int sse_cmp_mode = _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ORDERED | _SIDD_LEAST_SIGNIFICANT;
         static const unsigned char colon_delim[] = ":";
-        size_t name_end = name_start;
+
         ssize_t remaining_bytes = data_length - name_end;
         bool found_colon = false;
         while(remaining_bytes > 0)
@@ -283,7 +284,6 @@ static auto parse_request_headers(
             return RequestParseResult::INCOMPLETE;
         }
 #else
-        size_t name_end = name_start;
 #define CHECK_FOR_COLON() { if(data[++name_end] == ':') break; }
 
         // lets check 8 chars in a row!
@@ -359,16 +359,16 @@ static auto parse_request_headers(
         {
             auto& [name, value] = m_headers[m_header_count];
             if(
-                internal_string_view_icompare(name, "transfer-encoding")
+                    internal_string_view_icompare(name, "transfer-encoding")
                 &&  internal_string_view_icompare(value, "chunked")
-                )
+            )
             {
                 m_body_type = BodyType::CHUNKED;
             }
             else if(
-                internal_string_view_icompare(name, "content-length")
+                    internal_string_view_icompare(name, "content-length")
                 &&  value.length() > 0
-                )
+            )
             {
                 m_content_length = 0; // in the event from_chars fails, we'll get no body
                 std::from_chars(value.data(), value.data() + value.length(), m_content_length, 10);
@@ -382,7 +382,7 @@ static auto parse_request_headers(
                 m_pos + 1 < data_length
             &&  data[m_pos] == HTTP_CR
             &&  data[m_pos + 1] == HTTP_LF
-            )
+        )
         {
             m_pos += 2; // ADVANCE two times for the consumed values and setup for next parse stage
             m_parse_state = RequestParseState::PARSED_HEADERS;
