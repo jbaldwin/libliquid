@@ -144,7 +144,6 @@ static inline auto find_crlf(
         remaining_bytes = data_length - value_end;
     }
 #else
-    value_end = value_start;
     while(value_end + 8 < data_length)
     {
         if(data[value_end] == HTTP_CR) break;
