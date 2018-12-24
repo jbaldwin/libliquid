@@ -178,7 +178,8 @@ enum class ResponseParseState
 {
     START,
     PARSED_VERSION,
-    PARSED_STATUS,
+    PARSED_STATUS_CODE,
+    PARSED_REASON_PHRASE,
     PARSED_HEADERS,
     PARSED_BODY
 };
@@ -197,10 +198,11 @@ public:
     auto operator=(const Response&) -> Response& = default;
     auto operator=(Response&&) -> Response& = default;
 
-    auto Parse(std::string& data) -> void;
+    auto Parse(std::string& data) -> ResponseParseResult;
 private:
     auto parseVersion(std::string& data) -> ResponseParseResult;
     auto parseStatusCode(std::string& data) -> ResponseParseResult;
+    auto parseReasonPhrase(std::string& data) -> ResponseParseResult;
     auto parseHeaders(std::string& data) -> ResponseParseResult;
     auto parseBody(std::string& data) -> ResponseParseResult;
 public:
@@ -221,9 +223,14 @@ public:
     auto GetVersion() const -> Version;
 
     /**
-     * @return Gets the HTTP Status code of the response.
+     * @return Gets the HTTP Status Code of the response.
      */
     auto GetStatusCode() const -> uint64_t;
+
+    /**
+     * @return Gets the HTTP Reason Phrase of the response.
+     */
+    auto GetReasonPhrase() const -> std::string_view;
 
     /**
      * @return Gets the number of parsed headers.
@@ -253,14 +260,16 @@ public:
 
 private:
     /// How far in the parse state machine has this data gotten?
-    ResponseParseState m_parse_status{ResponseParseState::START};
+    ResponseParseState m_parse_state{ResponseParseState::START};
     /// The exact index of where the previous Parse() call was left off at.
     size_t m_pos{0};
 
     /// The parsed HTTP/X.Y version.
     Version m_version{Version::V1_1};
     /// The HTTP Response status code.
-    uint64_t m_status;
+    uint64_t m_status_code;
+    /// The HTTP Reason Phrase.
+    std::string_view m_reason_phrase;
 
     /// The number of headers in the response.
     size_t m_header_count{0};

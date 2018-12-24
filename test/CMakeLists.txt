@@ -5,6 +5,7 @@ set(LIBLIQUID_TEST_SOURCE_FILES
     Catch2.h
     main.cpp
     TestParseRequest.cpp
+    TestParseResponse.cpp
     TestSimd.cpp
 )
 

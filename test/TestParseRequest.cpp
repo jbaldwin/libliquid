@@ -1,7 +1,7 @@
 #include "Catch2.h"
 #include "liquid/Parser.h"
 
-SCENARIO("Parsing an empty string.")
+SCENARIO("REQUEST:Parsing an empty string.")
 {
     GIVEN("An empty HTTP Parser data.")
     {
@@ -20,7 +20,7 @@ SCENARIO("Parsing an empty string.")
     }
 }
 
-SCENARIO("Parsing GET Method")
+SCENARIO("REQUEST:Parsing GET Method")
 {
     GIVEN("A GET HTTP Parser")
     {
@@ -90,7 +90,7 @@ SCENARIO("Parsing GET Method")
     }
 }
 
-SCENARIO("Parsing POST Method")
+SCENARIO("REQUEST:Parsing POST Method")
 {
     GIVEN("A POST HTTP Parser")
     {
@@ -170,7 +170,7 @@ SCENARIO("Parsing POST Method")
     }
 }
 
-SCENARIO("Parsing PUT Method")
+SCENARIO("REQUEST:Parsing PUT Method")
 {
     GIVEN("A PUT HTTP Parser")
     {
@@ -190,7 +190,7 @@ SCENARIO("Parsing PUT Method")
     }
 }
 
-SCENARIO("Parsing PATCH Method")
+SCENARIO("REQUEST:Parsing PATCH Method")
 {
     GIVEN("A PATCH HTTP Parser")
     {
@@ -210,7 +210,7 @@ SCENARIO("Parsing PATCH Method")
     }
 }
 
-SCENARIO("Parsing HEAD Method")
+SCENARIO("REQUEST:Parsing HEAD Method")
 {
     GIVEN("A HEAD HTTP Parser")
     {
@@ -230,7 +230,7 @@ SCENARIO("Parsing HEAD Method")
     }
 }
 
-SCENARIO("Parsing DELETE Method")
+SCENARIO("REQUEST:Parsing DELETE Method")
 {
     GIVEN("A DELETE HTTP Parser")
     {
@@ -250,7 +250,7 @@ SCENARIO("Parsing DELETE Method")
     }
 }
 
-SCENARIO("Parsing a complete URI")
+SCENARIO("REQUEST:Parsing a complete URI")
 {
     GIVEN("A complete URI")
     {
@@ -271,7 +271,7 @@ SCENARIO("Parsing a complete URI")
     }
 }
 
-SCENARIO("Parsing an incomplete URI")
+SCENARIO("REQUEST:Parsing an incomplete URI")
 {
     GIVEN("A complete URI")
     {
@@ -316,7 +316,7 @@ SCENARIO("Parsing an incomplete URI")
     }
 }
 
-SCENARIO("Parsing a complete HTTP Version")
+SCENARIO("REQUEST:Parsing a complete HTTP Version")
 {
     GIVEN("A complete Parser-Line")
     {
@@ -338,7 +338,7 @@ SCENARIO("Parsing a complete HTTP Version")
     }
 }
 
-SCENARIO("Parsing an incomplete HTTP Version")
+SCENARIO("REQUEST:Parsing an incomplete HTTP Version")
 {
     GIVEN("An complete Parser-Line")
     {
@@ -439,7 +439,33 @@ SCENARIO("Parsing an incomplete HTTP Version")
     }
 }
 
-SCENARIO("Parsing a header line.")
+SCENARIO("REQUEST:Parsing a body with zero headers.")
+{
+    GIVEN("A complete Parser-Line with no headers but a EOF body")
+    {
+        std::string request_data = "GET /derp.html HTTP/1.1\r\n\r\nHERP DERP";
+        liquid::Request request{};
+
+        WHEN("Parsed")
+        {
+            auto result = request.Parse(request_data);
+            THEN("We expect the method to be GET and have a parsed URI but no version yet")
+            {
+                REQUIRE(result == liquid::RequestParseResult::COMPLETE);
+                REQUIRE(request.GetMethod() == liquid::Method::GET);
+                // This will never get updated to PARSED_BODY since its EOF stream,
+                // which doesnt' set parsed body since the parser cannot know if its the EOF stream or not.
+                REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_VERSION);
+                REQUIRE(request.GetUri() == "/derp.html");
+                REQUIRE(request.GetHeaderCount() == 0);
+                REQUIRE(request.GetBody().has_value());
+                REQUIRE(request.GetBody().value() == "HERP DERP");
+            }
+        }
+    }
+}
+
+SCENARIO("REQUEST:Parsing a header line.")
 {
     GIVEN("A complete Parser-Line")
     {
@@ -463,7 +489,7 @@ SCENARIO("Parsing a header line.")
     }
 }
 
-SCENARIO("Parsing multiple header lines.")
+SCENARIO("REQUEST:Parsing multiple header lines.")
 {
     GIVEN("A complete Parser-Line")
     {
@@ -494,7 +520,7 @@ SCENARIO("Parsing multiple header lines.")
     }
 }
 
-SCENARIO("Parsing multiple incomplete header lines.")
+SCENARIO("REQUEST:Parsing multiple incomplete header lines.")
 {
     GIVEN("A complete Parser-Line")
     {
@@ -561,7 +587,7 @@ SCENARIO("Parsing multiple incomplete header lines.")
     }
 }
 
-SCENARIO("Parsing multiple header lines with arbitrary whitespace in the headers.")
+SCENARIO("REQUEST:Parsing multiple header lines with arbitrary whitespace in the headers.")
 {
     GIVEN("A complete Parser-Line")
     {
@@ -592,7 +618,7 @@ SCENARIO("Parsing multiple header lines with arbitrary whitespace in the headers
     }
 }
 
-SCENARIO("Parsing a request with an END OF STREAM body.")
+SCENARIO("REQUEST:Parsing a request with an END OF STREAM body.")
 {
     GIVEN("A complete POST request with body.")
     {
@@ -645,7 +671,7 @@ SCENARIO("Parsing a request with an END OF STREAM body.")
     }
 }
 
-SCENARIO("Parsing a request with a Content-Length body.")
+SCENARIO("REQUEST:Parsing a request with a Content-Length body.")
 {
     GIVEN("A POST request with Content-Length + body")
     {
@@ -678,7 +704,7 @@ SCENARIO("Parsing a request with a Content-Length body.")
     }
 }
 
-SCENARIO("Parsing a request with a Transfer-Encoding: chunked body.")
+SCENARIO("REQUEST:Parsing a request with a Transfer-Encoding: chunked body.")
 {
     GIVEN("A POST request with Transfer-Encoding: chunked + body.")
     {
@@ -731,7 +757,7 @@ SCENARIO("Parsing a request with a Transfer-Encoding: chunked body.")
     }
 }
 
-SCENARIO("Parse PicoHTTPParser performance request.")
+SCENARIO("REQUEST:Parse PicoHTTPParser performance request.")
 {
     GIVEN("The buffer")
     {
