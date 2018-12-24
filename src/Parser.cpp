@@ -115,6 +115,62 @@ auto is_http_ws(char c) -> bool
     }
 }
 
+static auto find_crlf(
+    std::string& data,
+    size_t data_length,
+    size_t& value_end
+) -> bool
+{
+    bool found_crlf = false;
+    // The parser has found the name of the header, now parse for the value.
+#ifdef __SSE4_2__
+    static const int sse_cmp_mode = _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ORDERED | _SIDD_LEAST_SIGNIFICANT;
+    static const unsigned char crlf_delim[] = "\r\n";
+    size_t remaining_bytes = data_length - value_end;
+    while(remaining_bytes > 0)
+    {
+        const ssize_t len = (remaining_bytes >= 16) ? 16 : remaining_bytes;
+        const __m128i simd_a = _mm_loadu_si128((__m128i*)&data[value_end]);
+        const __m128i simd_b = _mm_loadu_si128((__m128i*)&crlf_delim[0]);
+        int result = _mm_cmpestri(simd_b, 2, simd_a , len, sse_cmp_mode);
+        if(result != 16) // always returns 16 on failure even if len < 16
+        {
+            value_end += static_cast<size_t>(result) - 1;
+            found_crlf = true;
+            break; // while(remaining_bytes > 0)
+        }
+        value_end += len;
+        remaining_bytes = data_length - value_end;
+    }
+#else
+//    value_end = value_start;
+//    while(value_end + 8 < data_length)
+//    {
+//        if(data[value_end] == HTTP_CR) break;
+//        if(data[++value_end] == HTTP_CR) break;
+//        if(data[++value_end] == HTTP_CR) break;
+//        if(data[++value_end] == HTTP_CR) break;
+//        if(data[++value_end] == HTTP_CR) break;
+//        if(data[++value_end] == HTTP_CR) break;
+//        if(data[++value_end] == HTTP_CR) break;
+//        if(data[++value_end] == HTTP_CR) break;
+//        ++value_end;
+//    }
+//
+//    // check one by one or until incomplete
+//    while(value_end < data_length)
+//    {
+//        if(data[value_end++] == HTTP_CR && value_end < data_length && data[value_end] == HTTP_LF)
+//        {
+//            value_end -= 2;
+//            found_crlf = true;
+//            break;
+//        }
+//    }
+#endif
+    return found_crlf;
+}
+
 enum class ParseVersionResult
 {
     /// The HTTP Version is malformed.
@@ -222,14 +278,14 @@ static auto parse_headers(
             const __m128i simd_a = _mm_loadu_si128((__m128i*)&data[name_end]);
             const __m128i simd_b = _mm_loadu_si128((__m128i*)&colon_delim[0]);
             int result = _mm_cmpestri(simd_b, 1, simd_a, len, sse_cmp_mode);
-            if(result != 16)
+            if(result != 16) // result is always 16 regardless of len on failure
             {
                 name_end += result;
                 value_start = name_end + 1;
                 found_colon = true;
                 break; // while(remaining_bytes > 0)
             }
-            name_end += 16;
+            name_end += len;
             remaining_bytes = data_length - name_end;
         }
 
@@ -281,55 +337,8 @@ static auto parse_headers(
         }
 
         // The parser has found the name of the header, now parse for the value.
-#ifdef __SSE4_2__
-        static const unsigned char crlf_delim[] = "\r\n";
         size_t value_end = value_start;
-        bool found_crlf = false;
-        remaining_bytes = data_length - value_end;
-        while(remaining_bytes > 0)
-        {
-            const ssize_t len = (remaining_bytes >= 16) ? 16 : remaining_bytes;
-            const __m128i simd_a = _mm_loadu_si128((__m128i*)&data[value_end]);
-            const __m128i simd_b = _mm_loadu_si128((__m128i*)&crlf_delim[0]);
-            int result = _mm_cmpestri(simd_b, 2, simd_a , len, sse_cmp_mode);
-            if(result != 16)
-            {
-                value_end += static_cast<size_t>(result) - 1;
-                found_crlf = true;
-                break; // while(remaining_bytes > 0)
-            }
-            value_end += 16;
-            remaining_bytes = data_length - value_end;
-        }
-#else
-        size_t value_end = value_start;
-        while(value_end + 8 < data_length)
-        {
-            if(data[value_end] == HTTP_CR) break;
-            if(data[++value_end] == HTTP_CR) break;
-            if(data[++value_end] == HTTP_CR) break;
-            if(data[++value_end] == HTTP_CR) break;
-            if(data[++value_end] == HTTP_CR) break;
-            if(data[++value_end] == HTTP_CR) break;
-            if(data[++value_end] == HTTP_CR) break;
-            if(data[++value_end] == HTTP_CR) break;
-            ++value_end;
-        }
-
-        // check one by one or until incomplete
-        bool found_crlf = false;
-        while(value_end < data_length)
-        {
-            if(data[value_end++] == HTTP_CR && value_end < data_length && data[value_end] == HTTP_LF)
-            {
-                value_end -= 2;
-                found_crlf = true;
-                break;
-            }
-        }
-#endif
-
-        if(!found_crlf)
+        if(!find_crlf(data, data_length, value_end))
         {
             return ParseHeadersResult::INCOMPLETE;
         }
@@ -1050,7 +1059,12 @@ auto Response::parseStatusCode(std::string& data) -> ResponseParseResult
 
 auto Response::parseReasonPhrase(std::string& data) -> ResponseParseResult
 {
+    // Since the reason phrases are not truely standardized, the parser just looks
+    // for the \r\n that ends the line and sets the m_reason_phrase to the entire section.
+
     (void)data;
+
+
     return ResponseParseResult::CONTINUE;
 }
 
