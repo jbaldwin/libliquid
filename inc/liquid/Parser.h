@@ -169,6 +169,7 @@ enum class ResponseParseResult
     COMPLETE,
     INCOMPLETE,
     HTTP_VERSION_MALFORMED,
+    HTTP_VERSION_UNKNOWN,
     HTTP_STATUS_CODE_MALFORMED,
     TOO_MANY_HEADERS,
     CHUNK_MALFORMED
@@ -267,7 +268,7 @@ private:
     /// The parsed HTTP/X.Y version.
     Version m_version{Version::V1_1};
     /// The HTTP Response status code.
-    uint64_t m_status_code;
+    uint64_t m_status_code{0};
     /// The HTTP Reason Phrase.
     std::string_view m_reason_phrase;
 

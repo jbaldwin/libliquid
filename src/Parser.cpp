@@ -7,6 +7,9 @@
 #include <immintrin.h>
 #endif
 
+#define UNLIKELY(EXPR) __glibc_unlikely(EXPR)
+#define LIKELY(EXPR) __glibc_likely(EXPR)
+
 namespace liquid
 {
 
@@ -132,7 +135,7 @@ static auto parse_version(
 ) -> ParseVersionResult
 {
     size_t data_length = data.length();
-    if(m_pos + 9 < data_length)
+    if(m_pos + 7 < data_length)
     {
         EXPECT('H', ParseVersionResult::MALFORMED);
         ADVANCE_EXPECT('T', ParseVersionResult::MALFORMED);
@@ -152,10 +155,6 @@ static auto parse_version(
             default:
                 return ParseVersionResult::UNKNOWN;
         }
-        // We include the \r\n here Parser-line to Header parse to reduce bounds checking
-        ADVANCE_EXPECT(HTTP_CR, ParseVersionResult::MALFORMED);
-        ADVANCE_EXPECT(HTTP_LF, ParseVersionResult::MALFORMED);
-        ADVANCE(); // Next section expects to be on its starting position
     }
     else
     {
@@ -716,8 +715,22 @@ auto Request::parseVersion(std::string& data) -> RequestParseResult
         case ParseVersionResult::INCOMPLETE:
             return RequestParseResult::INCOMPLETE;
         case ParseVersionResult::CONTINUE:
+        {
+            if (UNLIKELY(m_pos + 2 >= data.length()))
+            {
+                return RequestParseResult::INCOMPLETE;
+            }
+            else
+            {
+                // Need to also check for trailing \r\n in Requests
+                ADVANCE_EXPECT(HTTP_CR, RequestParseResult::HTTP_VERSION_MALFORMED);
+                ADVANCE_EXPECT(HTTP_LF, RequestParseResult::HTTP_VERSION_MALFORMED);
+                ADVANCE(); // Next section expects to be on its starting position
+            }
+
             m_parse_state = RequestParseState::PARSED_VERSION;
             return RequestParseResult::CONTINUE;
+        }
     }
 
     // impossible but gcc complains
@@ -978,14 +991,61 @@ auto Response::Parse(std::string& data) -> ResponseParseResult
 
 auto Response::parseVersion(std::string& data) -> ResponseParseResult
 {
-    (void)data;
-    return ResponseParseResult::CONTINUE;
+    auto result = parse_version(data, m_pos, m_version);
+
+    switch(result)
+    {
+
+        case ParseVersionResult::MALFORMED:
+            return ResponseParseResult::HTTP_VERSION_MALFORMED;
+        case ParseVersionResult::UNKNOWN:
+            return ResponseParseResult::HTTP_VERSION_UNKNOWN;
+        case ParseVersionResult::INCOMPLETE:
+            return ResponseParseResult::INCOMPLETE;
+        case ParseVersionResult::CONTINUE:
+        {
+            if(UNLIKELY(m_pos + 1 >= data.length()))
+            {
+                return ResponseParseResult::INCOMPLETE;
+            }
+            else
+            {
+                ADVANCE_EXPECT(HTTP_SP, ResponseParseResult::HTTP_VERSION_MALFORMED);
+                ADVANCE();
+                m_parse_state = ResponseParseState::PARSED_VERSION;
+                return ResponseParseResult::CONTINUE;
+            }
+        }
+    }
+
+    // impossible gcc error
+    return ResponseParseResult::HTTP_VERSION_UNKNOWN;
 }
 
 auto Response::parseStatusCode(std::string& data) -> ResponseParseResult
 {
-    (void)data;
-    return ResponseParseResult::CONTINUE;
+    size_t data_length = data.length();
+
+    /**
+     * All status codes are 3 digits in length, plus the trailing HTTP_SP, "XXX "
+     */
+    if(UNLIKELY(m_pos + 3 >= data_length))
+    {
+        return ResponseParseResult::INCOMPLETE;
+    }
+
+    std::from_chars(&data[m_pos], &data[m_pos + 2], m_status_code, 10);
+    ADVANCE_EXPECT(HTTP_SP, ResponseParseResult::HTTP_STATUS_CODE_MALFORMED);
+
+    if(LIKELY(m_status_code != 0))
+    {
+        m_parse_state = ResponseParseState::PARSED_STATUS_CODE;
+        return ResponseParseResult::CONTINUE;
+    }
+    else
+    {
+        return ResponseParseResult::HTTP_STATUS_CODE_MALFORMED;
+    }
 }
 
 auto Response::parseReasonPhrase(std::string& data) -> ResponseParseResult
@@ -1012,7 +1072,7 @@ auto Response::Reset() -> void
     m_pos = 0;
 
     //m_version{Version::V1_1};
-    //m_status_code;
+    m_status_code = 0;
     //m_reason_phrase;
 
     m_header_count = 0;
