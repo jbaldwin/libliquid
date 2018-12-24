@@ -1,2 +1,2 @@
-perf/ linguist-vendored
-test/ linguist-vendored
+perf/* linguist-vendored
+test/* linguist-vendored
