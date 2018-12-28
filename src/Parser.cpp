@@ -115,11 +115,20 @@ auto is_http_ws(char c) -> bool
     }
 }
 
+/**
+ * This function will quickly find the next \r\n in the data stream starting at 'index' position
+ * for up to 'data_length' bytes.  Note that 'index' is updated to the byte before \r\n.
+ * @param data The input data stream to find \r\n in.
+ * @param data_length The maximum number of bytes to check into 'data', this is probably data.length() most of the time.
+ * @param index [out] This parameter marks the starting position and then the index of (\r\n - 1). The previous byte.
+ *                    Note that 'index' is mutated regardless if the \r\n is found or not.
+ * @return True if \r\n was found, otherwise false.
+ */
 [[gnu::always_inline]]
 static inline auto find_crlf(
     std::string& data,
     size_t data_length,
-    size_t& value_end
+    size_t& index
 ) -> bool
 {
     bool found_crlf = false;
@@ -127,21 +136,21 @@ static inline auto find_crlf(
 #ifdef __SSE4_2__
     static const int sse_cmp_mode = _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ORDERED | _SIDD_LEAST_SIGNIFICANT;
     static const unsigned char crlf_delim[] = "\r\n";
-    ssize_t remaining_bytes = data_length - value_end;
+    ssize_t remaining_bytes = data_length - index;
     while(remaining_bytes > 0)
     {
         const ssize_t len = (remaining_bytes >= 16) ? 16 : remaining_bytes;
-        const __m128i simd_a = _mm_loadu_si128((__m128i*)&data[value_end]);
+        const __m128i simd_a = _mm_loadu_si128((__m128i*)&data[index]);
         const __m128i simd_b = _mm_loadu_si128((__m128i*)&crlf_delim[0]);
         int result = _mm_cmpestri(simd_b, 2, simd_a , len, sse_cmp_mode);
         if(result != 16) // always returns 16 on failure even if len < 16
         {
-            value_end += static_cast<size_t>(result) - 1;
+            index += static_cast<size_t>(result) - 1;
             found_crlf = true;
             break; // while(remaining_bytes > 0)
         }
-        value_end += 16; // doesn't matter, constant is significantly better, but ssize_t is important on remaining_bytes!
-        remaining_bytes = data_length - value_end;
+        index += 16; // doesn't matter, constant is significantly better, but ssize_t is important on remaining_bytes!
+        remaining_bytes = data_length - index;
     }
 #else
     while(value_end + 8 < data_length)
@@ -1007,20 +1016,30 @@ auto Response::parseVersion(std::string& data) -> ResponseParseResult
 auto Response::parseStatusCode(std::string& data) -> ResponseParseResult
 {
     size_t data_length = data.length();
+    size_t required_bytes = m_pos + 3;
 
     /**
      * All status codes are 3 digits in length, plus the trailing HTTP_SP, "XXX "
      */
-    if(UNLIKELY(m_pos + 3 >= data_length))
+    if(UNLIKELY(required_bytes > data_length))
     {
         return ResponseParseResult::INCOMPLETE;
     }
 
-    std::from_chars(&data[m_pos], &data[m_pos + 2], m_status_code, 10);
-    ADVANCE_EXPECT(HTTP_SP, ResponseParseResult::HTTP_STATUS_CODE_MALFORMED);
+    if(    !std::isdigit(data[m_pos])
+        || !std::isdigit(data[m_pos + 1])
+        || !std::isdigit(data[m_pos + 2])
+    )
+    {
+        return ResponseParseResult::HTTP_STATUS_CODE_MALFORMED;
+    }
 
+    std::from_chars(&data[m_pos], &data[required_bytes], m_status_code, 10);
     if(LIKELY(m_status_code != 0))
     {
+        m_pos += 3; // Advanced 3x past the status code.
+        EXPECT(HTTP_SP, ResponseParseResult::HTTP_STATUS_CODE_MALFORMED);
+        ADVANCE();
         m_parse_state = ResponseParseState::PARSED_STATUS_CODE;
         return ResponseParseResult::CONTINUE;
     }
@@ -1034,23 +1053,34 @@ auto Response::parseReasonPhrase(std::string& data) -> ResponseParseResult
 {
     // Since the reason phrases are not truely standardized, the parser just looks
     // for the \r\n that ends the line and sets the m_reason_phrase to the entire section.
+    // Its possible there are only certain characters allowed in the reason phrase, this is
+    // currently not handled by the parser and just looks for \r\n.
 
-    (void)data;
-
-
-    return ResponseParseResult::CONTINUE;
+    size_t value_end = m_pos;
+    if(LIKELY(find_crlf(data, data.length(), value_end)))
+    {
+        // If found, value_end will be the byte before \r\n, so calculate the length + 1 for the string view.
+        m_reason_phrase = std::string_view{&data[m_pos], value_end - m_pos + 1};
+        m_pos += value_end + 2; // advance past the \r\n as well
+        m_parse_state = ResponseParseState::PARSED_REASON_PHRASE;
+        return ResponseParseResult::CONTINUE;
+    }
+    else
+    {
+        return ResponseParseResult::INCOMPLETE;
+    }
 }
 
 auto Response::parseHeaders(std::string& data) -> ResponseParseResult
 {
     (void)data;
-    return ResponseParseResult::CONTINUE;
+    return ResponseParseResult::INCOMPLETE;
 }
 
 auto Response::parseBody(std::string& data) -> ResponseParseResult
 {
     (void)data;
-    return ResponseParseResult::CONTINUE;
+    return ResponseParseResult::INCOMPLETE;
 }
 
 auto Response::Reset() -> void
