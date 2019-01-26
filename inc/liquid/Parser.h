@@ -36,7 +36,7 @@ enum class BodyType
 {
     CHUNKED,
     CONTENT_LENGTH,
-    END_OF_STREAM
+    NO_BODY
 };
 
 class Request
@@ -154,7 +154,7 @@ private:
     std::array<std::pair<std::string_view, std::string_view>, 64> m_headers;
 
     /// The type of body, if there is one.
-    BodyType m_body_type{BodyType::END_OF_STREAM};
+    BodyType m_body_type{BodyType::NO_BODY};
     /// The Content-Length value if present.
     size_t m_content_length;
     /// The start of the body (used for Transfer-Encoding: chunked)
@@ -278,7 +278,7 @@ private:
     std::array<std::pair<std::string_view, std::string_view>, 64> m_headers;
 
     /// The type of body, if there is one.
-    BodyType m_body_type{BodyType::END_OF_STREAM};
+    BodyType m_body_type{BodyType::NO_BODY};
     /// The Content-Length value if present.
     size_t m_content_length;
     /// The start of the body (used for Transfer-Encoding: chunked)

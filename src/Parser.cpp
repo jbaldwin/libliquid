@@ -364,7 +364,7 @@ static auto parse_request_headers(
         };
         // Before continuing, check to see if any of these headers give an indication if
         // there is any body content.
-        if(m_body_type == BodyType::END_OF_STREAM)
+        if(m_body_type == BodyType::NO_BODY)
         {
             auto& [name, value] = m_headers[m_header_count];
             if(
@@ -446,9 +446,15 @@ auto Request::Parse(std::string& data) -> RequestParseResult
         }
     }
 
-    // There may or may not be a body after the headers OR no headers but a EOS body.
+    /**
+     * Its possible there is a body after the headers, but this parser only supports
+     * it if it can deduce how long the body is by either having a content-length header
+     * or chunked encoding.  End of stream is technically a valid http request but
+     * without access to the socket the parser has no way of knowing if its the end or,
+     * thus we'll just report completion upon finishing parsing of the headers.
+     */
     if(    m_parse_state == RequestParseState::PARSED_HEADERS
-        || m_body_type == BodyType::END_OF_STREAM
+        && m_body_type != BodyType::NO_BODY
     )
     {
         auto result = parseBody(data);
@@ -849,16 +855,8 @@ auto Request::parseBody(std::string& data) -> RequestParseResult
             }
         }
             break;
-        case BodyType::END_OF_STREAM:
-        {
-            if (m_pos < data_length)
-            {
-                // just update to as much data is possible, this isn't a super reliable method
-                m_body.emplace(&data[m_pos], data.length() - m_pos);
-                // Do not update m_parse_state, the user might
-                // call again with more data to add into the body...
-            }
-        }
+        case BodyType::NO_BODY:
+            // nothing to do
             break;
     }
 
@@ -875,7 +873,7 @@ auto Request::Reset() -> void
     //m_version{Version::V1_1};
     m_header_count = 0;
     //m_headers;
-    m_body_type = BodyType::END_OF_STREAM;
+    m_body_type = BodyType::NO_BODY;
     m_content_length = 0;
     m_body_start = 0;
     m_body = std::nullopt;
@@ -968,7 +966,9 @@ auto Response::Parse(std::string& data) -> ResponseParseResult
         }
     }
 
-    if(m_parse_state == ResponseParseState::PARSED_HEADERS)
+    if(    m_parse_state == ResponseParseState::PARSED_HEADERS
+        && m_body_type != BodyType::NO_BODY
+    )
     {
         auto result = parseBody(data);
         if(result != ResponseParseResult::CONTINUE)
@@ -1061,7 +1061,7 @@ auto Response::parseReasonPhrase(std::string& data) -> ResponseParseResult
     {
         // If found, value_end will be the byte before \r\n, so calculate the length + 1 for the string view.
         m_reason_phrase = std::string_view{&data[m_pos], value_end - m_pos + 1};
-        m_pos += value_end + 2; // advance past the \r\n as well
+        m_pos = value_end + 3; // advance past the \r\n as well
         m_parse_state = ResponseParseState::PARSED_REASON_PHRASE;
         return ResponseParseResult::CONTINUE;
     }
@@ -1071,16 +1071,289 @@ auto Response::parseReasonPhrase(std::string& data) -> ResponseParseResult
     }
 }
 
+static auto parse_response_headers(
+    std::string& data,
+    size_t& m_pos,
+    size_t& m_header_count,
+    std::array<std::pair<std::string_view, std::string_view>, 64>& m_headers,
+    BodyType& m_body_type,
+    size_t& m_content_length,
+    ResponseParseState& m_parse_state
+) -> ResponseParseResult
+{
+    size_t data_length = data.length();
+    // missing empty line or headers
+    if(data_length == m_pos)
+    {
+        return ResponseParseResult::INCOMPLETE;
+    }
+
+    // If there are exactly 2 characters left and its the newline,
+    // this request is complete as there are no headers.
+    if(
+            m_pos + 2 <= data_length
+        &&  data[m_pos] == HTTP_CR
+        &&  data[m_pos + 1] == HTTP_LF
+        )
+    {
+        m_pos += 2; // advance twice for the consumed values.
+        return ResponseParseResult::CONTINUE;
+    }
+
+    // There must be some headers here, parse them!
+    while(true)
+    {
+        size_t name_start = m_pos;
+        size_t value_start;
+        size_t name_end = name_start;
+
+#ifdef __SSE4_2__
+        static const int sse_cmp_mode = _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ORDERED | _SIDD_LEAST_SIGNIFICANT;
+        static const unsigned char colon_delim[] = ":";
+
+        ssize_t remaining_bytes = data_length - name_end;
+        bool found_colon = false;
+        while(remaining_bytes > 0)
+        {
+            const ssize_t len = (remaining_bytes > 16) ? 16 : remaining_bytes;
+            const __m128i simd_a = _mm_loadu_si128((__m128i*)&data[name_end]);
+            const __m128i simd_b = _mm_loadu_si128((__m128i*)&colon_delim[0]);
+            int result = _mm_cmpestri(simd_b, 1, simd_a, len, sse_cmp_mode);
+            if(result != 16)
+            {
+                name_end += result;
+                value_start = name_end + 1;
+                found_colon = true;
+                break; // while(remaining_bytes > 0)
+            }
+            name_end += 16;
+            remaining_bytes = data_length - name_end;
+        }
+
+        if(!found_colon)
+        {
+            return ResponseParseResult::INCOMPLETE;
+        }
+#else
+        #define CHECK_FOR_COLON() { if(data[++name_end] == ':') break; }
+
+        // lets check 8 chars in a row!
+        while(name_end + 8 < data_length)
+        {
+            CHECK_FOR_COLON();
+            CHECK_FOR_COLON();
+            CHECK_FOR_COLON();
+            CHECK_FOR_COLON();
+            CHECK_FOR_COLON();
+            CHECK_FOR_COLON();
+            CHECK_FOR_COLON();
+            CHECK_FOR_COLON();
+        }
+#undef CHECK_FOR_COLON
+
+        // go one by one...
+        while(true)
+        {
+            if(name_end < data_length)
+            {
+                if(data[name_end] == ':')
+                {
+                    value_start = name_end + 1;
+                    break; // while(true);
+                }
+                ++name_end;
+            }
+            else
+            {
+                return RequestParseResult::INCOMPLETE;
+            }
+        }
+#endif
+
+        // Walk value forwards to left trim, this is unlikely to be more than 1 HTTP_SP or HTTP_HTAB
+        while(value_start < data_length && is_http_ws(data[value_start]))
+        {
+            ++value_start;
+        }
+
+        // The parser has found the name of the header, now parse for the value.
+        size_t value_end = value_start;
+        if(!find_crlf(data, data_length, value_end))
+        {
+            return ResponseParseResult::INCOMPLETE;
+        }
+
+        // Update the current position after finding the end of the header,
+        // since this loop expects to be on the first char its checking ADVANCE 3 times
+        m_pos = value_end + 3;
+
+        // Walk value end backwards to right trim
+        while(is_http_ws(data[value_end]))
+        {
+            --value_end;
+        }
+
+        // We are out of space :(
+        if(m_header_count == 64)
+        {
+            return ResponseParseResult::TOO_MANY_HEADERS;
+        }
+
+        m_headers[m_header_count] =
+        {
+            {&data[name_start], (name_end - name_start)},
+            {&data[value_start], (value_end - value_start + 1)}
+        };
+        // Before continuing, check to see if any of these headers give an indication if
+        // there is any body content.
+        if(m_body_type == BodyType::NO_BODY)
+        {
+            auto& [name, value] = m_headers[m_header_count];
+            if(
+                    internal_string_view_icompare(name, "transfer-encoding")
+                &&  internal_string_view_icompare(value, "chunked")
+                )
+            {
+                m_body_type = BodyType::CHUNKED;
+            }
+            else if(
+                    internal_string_view_icompare(name, "content-length")
+                &&  value.length() > 0
+                )
+            {
+                m_content_length = 0; // in the event from_chars fails, we'll get no body
+                std::from_chars(value.data(), value.data() + value.length(), m_content_length, 10);
+                m_body_type = BodyType::CONTENT_LENGTH;
+            }
+        }
+        ++m_header_count;
+
+        // If this header line end with CRLF then this request has no more headers.
+        if(
+                m_pos + 1 < data_length
+            &&  data[m_pos] == HTTP_CR
+            &&  data[m_pos + 1] == HTTP_LF
+            )
+        {
+            m_pos += 2; // ADVANCE two times for the consumed values and setup for next parse stage
+            m_parse_state = ResponseParseState::PARSED_HEADERS;
+            break; // while(true)
+        }
+    }
+
+    return ResponseParseResult::CONTINUE;
+}
+
 auto Response::parseHeaders(std::string& data) -> ResponseParseResult
 {
-    (void)data;
-    return ResponseParseResult::INCOMPLETE;
+    return parse_response_headers(
+        data,
+        m_pos,
+        m_header_count,
+        m_headers,
+        m_body_type,
+        m_content_length,
+        m_parse_state
+    );
 }
 
 auto Response::parseBody(std::string& data) -> ResponseParseResult
 {
-    (void)data;
-    return ResponseParseResult::INCOMPLETE;
+    size_t data_length = data.length();
+    switch(m_body_type)
+    {
+        case BodyType::CHUNKED:
+        {
+            // First time through record the start of the body for the full chunked body size.
+            if(!m_body.has_value())
+            {
+                m_body_start = m_pos;
+                m_content_length = 0; // leverage this for the decoded length
+                m_body.emplace(&data[m_pos], 0);
+            }
+
+            while(true)
+            {
+                size_t chunk_size_end = m_pos + 1;
+                bool chunk_size_end_found = false;
+                while(chunk_size_end + 1 < data_length)
+                {
+                    if(data[chunk_size_end] == HTTP_CR && data[chunk_size_end + 1] == HTTP_LF)
+                    {
+                        chunk_size_end_found = true;
+                        break; // while(chunk_size_end + 1 < data_length)
+                    }
+                    ++chunk_size_end;
+                }
+
+                if(!chunk_size_end_found)
+                {
+                    return ResponseParseResult::INCOMPLETE;
+                }
+
+                size_t chunk_length{0};
+                std::from_chars(&data[m_pos], &data[chunk_size_end], chunk_length, 16);
+
+                if(chunk_length != 0)
+                {
+                    // There is a valid chunk with some data, parse over it!
+                    // (note: chunk_size_end includes 1 byte for \r\n already
+                    m_pos = chunk_size_end + 1 + chunk_length;
+                    if(m_pos + 2 < data_length)
+                    {
+                        // move the data into the correct position. this is major YIKES!
+                        char* data_start = data.data() + (m_body_start + m_content_length);
+                        char* chunk_start = data.data() + (chunk_size_end + 2);
+
+                        std::memmove(data_start, chunk_start, chunk_length);
+                        m_content_length += chunk_length; // Keep track of the entire size though content length.
+                        m_body.emplace(&data[m_body_start], m_content_length);
+
+                        ADVANCE_EXPECT(HTTP_CR, ResponseParseResult::CHUNK_MALFORMED);
+                        ADVANCE_EXPECT(HTTP_LF, ResponseParseResult::CHUNK_MALFORMED);
+                        ADVANCE(); // This chunk parser expects to be on the first byte of the chunk
+                    }
+                }
+                else
+                {
+                    // If the chunk length is zero, then ADVANCE_EXPECT the final \r\n and record the body.
+                    if(chunk_size_end + 3 <= data_length) // need \n\r\n
+                    {
+                        m_pos = chunk_size_end + 1; // strip the \n trailing chunk_size_end
+                        ADVANCE_EXPECT(HTTP_CR, ResponseParseResult::CHUNK_MALFORMED);
+                        ADVANCE_EXPECT(HTTP_LF, ResponseParseResult::CHUNK_MALFORMED);
+                        m_parse_state = ResponseParseState::PARSED_BODY;
+                        break; // while(true)
+                    }
+                    else
+                    {
+                        // its possible to infer the last two bytes *should* be CR LF, but technically
+                        // it is incomplete without them
+                        return ResponseParseResult::INCOMPLETE;
+                    }
+                }
+            }
+        }
+            break;
+        case BodyType::CONTENT_LENGTH:
+        {
+            if(m_pos + m_content_length >= data_length)
+            {
+                m_body.emplace(&data[m_pos], m_content_length);
+                m_parse_state = ResponseParseState::PARSED_BODY;
+            }
+            else
+            {
+                return ResponseParseResult::INCOMPLETE;
+            }
+        }
+            break;
+        case BodyType::NO_BODY:
+            // nothing to do
+            break;
+    }
+
+    return ResponseParseResult::COMPLETE;
 }
 
 auto Response::Reset() -> void
@@ -1095,7 +1368,7 @@ auto Response::Reset() -> void
     m_header_count = 0;
     //m_headers;
 
-    m_body_type = BodyType::END_OF_STREAM;
+    m_body_type = BodyType::NO_BODY;
     m_content_length = 0;
     m_body_start = 0;
     m_body = std::nullopt;

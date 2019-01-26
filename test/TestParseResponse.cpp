@@ -1788,3 +1788,50 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
         }
     }
 }
+
+SCENARIO("RESPONSE: Parsing up through headers.")
+{
+    GIVEN("An HTTP Response with headers.")
+    {
+        std::string response_data =
+            "HTTP/1.1 200 OK\r\n"
+            "X-random-header: nullvalue\r\n"
+            "\r\n";
+        liquid::Response response{};
+
+        WHEN("Parsed")
+        {
+            auto result = response.Parse(response_data);
+            THEN("We expect the parser to not fail.")
+            {
+                REQUIRE(result == liquid::ResponseParseResult::COMPLETE);
+                REQUIRE(response.GetParseState() == liquid::ResponseParseState::PARSED_HEADERS);
+            }
+        }
+    }
+}
+
+SCENARIO("RESPONSE: Parsing a content length body.")
+{
+    GIVEN("An HTTP Response with headers.")
+    {
+        std::string response_data =
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Length: 5\r\n"
+            "\r\n"
+            "12345";
+        liquid::Response response{};
+
+        WHEN("Parsed")
+        {
+            auto result = response.Parse(response_data);
+            THEN("We expect the parser to not fail.")
+            {
+                REQUIRE(result == liquid::ResponseParseResult::COMPLETE);
+                REQUIRE(response.GetParseState() == liquid::ResponseParseState::PARSED_BODY);
+                REQUIRE(response.GetBody().has_value());
+                REQUIRE(response.GetBody().value() == "12345");
+            }
+        }
+    }
+}

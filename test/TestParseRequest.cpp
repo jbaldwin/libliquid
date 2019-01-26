@@ -441,7 +441,7 @@ SCENARIO("REQUEST:Parsing an incomplete HTTP Version")
 
 SCENARIO("REQUEST:Parsing a body with zero headers.")
 {
-    GIVEN("A complete Parser-Line with no headers but a EOF body")
+    GIVEN("A complete Parser-Line with no headers but a EOF body, parser will ignore the body.")
     {
         std::string request_data = "GET /derp.html HTTP/1.1\r\n\r\nHERP DERP";
         liquid::Request request{};
@@ -458,8 +458,8 @@ SCENARIO("REQUEST:Parsing a body with zero headers.")
                 REQUIRE(request.GetParseState() == liquid::RequestParseState::PARSED_VERSION);
                 REQUIRE(request.GetUri() == "/derp.html");
                 REQUIRE(request.GetHeaderCount() == 0);
-                REQUIRE(request.GetBody().has_value());
-                REQUIRE(request.GetBody().value() == "HERP DERP");
+                // This has a body but the parser will ignore it since it didn't get any indication to its length.
+                REQUIRE(!request.GetBody().has_value());
             }
         }
     }
@@ -633,7 +633,7 @@ SCENARIO("REQUEST:Parsing a request with an END OF STREAM body.")
         WHEN("Parsed")
         {
             auto result = request.Parse(request_data);
-            THEN("We expect the body to be parsed.")
+            THEN("We expect the body to be ignored.")
             {
                 REQUIRE(result == liquid::RequestParseResult::COMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::POST);
@@ -645,7 +645,7 @@ SCENARIO("REQUEST:Parsing a request with an END OF STREAM body.")
                 REQUIRE(request.GetHeaderCount() == 2);
                 REQUIRE(request.GetHeader("Connection").value() == "keep-alive");
                 REQUIRE(request.GetHeader("Accept").value() == "*/*");
-                REQUIRE(request.GetBody().value() == "0123456789");
+                REQUIRE(!request.GetBody().has_value()); // EOS body isn't parsed
             }
         }
 
@@ -653,7 +653,7 @@ SCENARIO("REQUEST:Parsing a request with an END OF STREAM body.")
         WHEN("Parsed")
         {
             auto result = request.Parse(request_data);
-            THEN("We expect the body to be parsed.")
+            THEN("We expect the body be ignored by the parser.")
             {
                 REQUIRE(result == liquid::RequestParseResult::COMPLETE);
                 REQUIRE(request.GetMethod() == liquid::Method::POST);
@@ -665,7 +665,7 @@ SCENARIO("REQUEST:Parsing a request with an END OF STREAM body.")
                 REQUIRE(request.GetHeaderCount() == 2);
                 REQUIRE(request.GetHeader("Connection").value() == "keep-alive");
                 REQUIRE(request.GetHeader("Accept").value() == "*/*");
-                REQUIRE(request.GetBody().value() == "01234567890123456789");
+                REQUIRE(!request.GetBody().has_value());
             }
         }
     }
