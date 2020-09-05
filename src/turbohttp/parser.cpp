@@ -1,4 +1,4 @@
-#include "liquid/parser.hpp"
+#include "turbohttp/parser.hpp"
 
 #include <charconv>
 #include <cstring>
@@ -10,7 +10,7 @@
 #define UNLIKELY(EXPR) __glibc_unlikely(EXPR)
 #define LIKELY(EXPR) __glibc_likely(EXPR)
 
-namespace liquid
+namespace turbo::http
 {
 
 static constexpr char HTTP_SP = ' ';
@@ -1360,5 +1360,5 @@ auto response::http_header(std::string_view name) const -> std::optional<std::st
     return std::optional<std::string_view>{};
 }
 
-} // namespace liquid
+} // namespace turbo::http
 

@@ -1,20 +1,22 @@
 #include "catch.hpp"
-#include "liquid/liquid.hpp"
+#include "turbohttp/turbohttp.hpp"
+
+using namespace turbo::http;
 
 SCENARIO("RESPONSE: Parsing an empty string.")
 {
     GIVEN("An empty HTTP Parser data.")
     {
         std::string response_data{};
-        liquid::response response{};
+        response response{};
 
         WHEN("Parsed")
         {
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::start);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::start);
             }
         }
     }
@@ -25,15 +27,15 @@ SCENARIO("RESPONSE: Parsing a valid HTTP/1.0 response.")
     GIVEN("An HTTP response with only the version.")
     {
         std::string response_data = "HTTP/1.0 ";
-        liquid::response response{};
+        response response{};
 
         WHEN("Parsed")
         {
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_version);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_version);
             }
         }
     }
@@ -44,15 +46,15 @@ SCENARIO("RESPONSE: Parsing an unknown HTTP/1.0 response.")
     GIVEN("An HTTP response with an unknown version.")
     {
         std::string response_data = "HTTP/1.x ";
-        liquid::response response{};
+        response response{};
 
         WHEN("Parsed")
         {
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::http_version_unknown);
-                REQUIRE(response.state() == liquid::response::parse_state::start);
+                REQUIRE(result == response::parse_result::http_version_unknown);
+                REQUIRE(response.state() == response::parse_state::start);
             }
         }
     }
@@ -63,15 +65,15 @@ SCENARIO("RESPONSE: Parsing a truncated valid HTTP/1.0 response.")
     GIVEN("An HTTP response with truncated version data")
     {
         std::string response_data = "H";
-        liquid::response response{};
+        response response{};
 
         WHEN("Parsed")
         {
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::start);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::start);
             }
         }
 
@@ -81,8 +83,8 @@ SCENARIO("RESPONSE: Parsing a truncated valid HTTP/1.0 response.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::start);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::start);
             }
         }
         response_data += "T";
@@ -91,8 +93,8 @@ SCENARIO("RESPONSE: Parsing a truncated valid HTTP/1.0 response.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::start);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::start);
             }
         }
         response_data += "P";
@@ -101,8 +103,8 @@ SCENARIO("RESPONSE: Parsing a truncated valid HTTP/1.0 response.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::start);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::start);
             }
         }
 
@@ -112,8 +114,8 @@ SCENARIO("RESPONSE: Parsing a truncated valid HTTP/1.0 response.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::start);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::start);
             }
         }
         response_data += "1";
@@ -122,8 +124,8 @@ SCENARIO("RESPONSE: Parsing a truncated valid HTTP/1.0 response.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::start);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::start);
             }
         }
         response_data += ".";
@@ -132,8 +134,8 @@ SCENARIO("RESPONSE: Parsing a truncated valid HTTP/1.0 response.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::start);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::start);
             }
         }
         response_data += "1";
@@ -142,8 +144,8 @@ SCENARIO("RESPONSE: Parsing a truncated valid HTTP/1.0 response.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::start);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::start);
             }
         }
         response_data += " ";
@@ -152,8 +154,8 @@ SCENARIO("RESPONSE: Parsing a truncated valid HTTP/1.0 response.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_version);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_version);
             }
         }
     }
@@ -164,15 +166,15 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
     GIVEN("An HTTP response with a status code.")
     {
         std::string response_data = "HTTP/1.1 100 ";
-        liquid::response response{};
+        response response{};
 
         WHEN("Parsed")
         {
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 100);
             }
         }
@@ -183,8 +185,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 101);
             }
         }
@@ -195,8 +197,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 102);
             }
         }
@@ -207,8 +209,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 103);
             }
         }
@@ -219,8 +221,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 200);
             }
         }
@@ -231,8 +233,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 201);
             }
         }
@@ -243,8 +245,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 202);
             }
         }
@@ -255,8 +257,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 203);
             }
         }
@@ -267,8 +269,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 204);
             }
         }
@@ -279,8 +281,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 205);
             }
         }
@@ -291,8 +293,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 206);
             }
         }
@@ -303,8 +305,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 207);
             }
         }
@@ -315,8 +317,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 208);
             }
         }
@@ -327,8 +329,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 226);
             }
         }
@@ -339,8 +341,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 300);
             }
         }
@@ -351,8 +353,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 301);
             }
         }
@@ -363,8 +365,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 302);
             }
         }
@@ -375,8 +377,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 303);
             }
         }
@@ -387,8 +389,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 304);
             }
         }
@@ -399,8 +401,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 305);
             }
         }
@@ -411,8 +413,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 306);
             }
         }
@@ -423,8 +425,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 307);
             }
         }
@@ -435,8 +437,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 308);
             }
         }
@@ -447,8 +449,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 400);
             }
         }
@@ -459,8 +461,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 401);
             }
         }
@@ -471,8 +473,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 402);
             }
         }
@@ -483,8 +485,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 403);
             }
         }
@@ -495,8 +497,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 404);
             }
         }
@@ -507,8 +509,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 405);
             }
         }
@@ -519,8 +521,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 406);
             }
         }
@@ -531,8 +533,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 407);
             }
         }
@@ -543,8 +545,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 408);
             }
         }
@@ -555,8 +557,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 409);
             }
         }
@@ -567,8 +569,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 410);
             }
         }
@@ -579,8 +581,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 411);
             }
         }
@@ -591,8 +593,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 412);
             }
         }
@@ -603,8 +605,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 413);
             }
         }
@@ -615,8 +617,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 414);
             }
         }
@@ -627,8 +629,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 415);
             }
         }
@@ -639,8 +641,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 416);
             }
         }
@@ -651,8 +653,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 417);
             }
         }
@@ -663,8 +665,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 418);
             }
         }
@@ -675,8 +677,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 421);
             }
         }
@@ -687,8 +689,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 422);
             }
         }
@@ -699,8 +701,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 423);
             }
         }
@@ -711,8 +713,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 424);
             }
         }
@@ -723,8 +725,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 426);
             }
         }
@@ -735,8 +737,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 428);
             }
         }
@@ -747,8 +749,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 429);
             }
         }
@@ -759,8 +761,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 431);
             }
         }
@@ -771,8 +773,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 451);
             }
         }
@@ -783,8 +785,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 500);
             }
         }
@@ -795,8 +797,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 500);
             }
         }
@@ -807,8 +809,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 501);
             }
         }
@@ -819,8 +821,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 502);
             }
         }
@@ -831,8 +833,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 503);
             }
         }
@@ -843,8 +845,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 504);
             }
         }
@@ -855,8 +857,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 505);
             }
         }
@@ -867,8 +869,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 506);
             }
         }
@@ -879,8 +881,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 507);
             }
         }
@@ -891,8 +893,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 508);
             }
         }
@@ -903,8 +905,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 510);
             }
         }
@@ -915,8 +917,8 @@ SCENARIO("RESPONSE: Parsing up to a valid status codes.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_status_code);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_status_code);
                 REQUIRE(response.http_status_code() == 511);
             }
         }
@@ -928,15 +930,15 @@ SCENARIO("RESPONSE: Parsing up to an invalid status code.")
     GIVEN("An HTTP response with an invalid status code.")
     {
         std::string response_data = "HTTP/1.1 10  ";
-        liquid::response response{};
+        response response{};
 
         WHEN("Parsed")
         {
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::http_status_code_malformed);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_version);
+                REQUIRE(result == response::parse_result::http_status_code_malformed);
+                REQUIRE(response.state() == response::parse_state::parsed_version);
             }
         }
 
@@ -946,8 +948,8 @@ SCENARIO("RESPONSE: Parsing up to an invalid status code.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::http_status_code_malformed);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_version);
+                REQUIRE(result == response::parse_result::http_status_code_malformed);
+                REQUIRE(response.state() == response::parse_state::parsed_version);
             }
         }
 
@@ -957,8 +959,8 @@ SCENARIO("RESPONSE: Parsing up to an invalid status code.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::http_status_code_malformed);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_version);
+                REQUIRE(result == response::parse_result::http_status_code_malformed);
+                REQUIRE(response.state() == response::parse_state::parsed_version);
             }
         }
 
@@ -968,8 +970,8 @@ SCENARIO("RESPONSE: Parsing up to an invalid status code.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::http_status_code_malformed);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_version);
+                REQUIRE(result == response::parse_result::http_status_code_malformed);
+                REQUIRE(response.state() == response::parse_state::parsed_version);
             }
         }
     }
@@ -980,15 +982,15 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
     GIVEN("An HTTP response with an invalid status code.")
     {
         std::string response_data = "HTTP/1.1 100 Continue\r\n";
-        liquid::response response{};
+        response response{};
 
         WHEN("Parsed")
         {
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 100);
                 REQUIRE(response.http_reason_phrase() == "Continue");
             }
@@ -1000,8 +1002,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 101);
                 REQUIRE(response.http_reason_phrase() == "Switching Protocols");
             }
@@ -1013,8 +1015,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 102);
                 REQUIRE(response.http_reason_phrase() == "Processing");
             }
@@ -1026,8 +1028,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 103);
                 REQUIRE(response.http_reason_phrase() == "Early Hints");
             }
@@ -1039,8 +1041,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 200);
                 REQUIRE(response.http_reason_phrase() == "OK");
             }
@@ -1052,8 +1054,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 201);
                 REQUIRE(response.http_reason_phrase() == "Created");
             }
@@ -1065,8 +1067,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 202);
                 REQUIRE(response.http_reason_phrase() == "Accepted");
             }
@@ -1078,8 +1080,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 203);
                 REQUIRE(response.http_reason_phrase() == "Non-Authoritative Information");
             }
@@ -1091,8 +1093,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 204);
                 REQUIRE(response.http_reason_phrase() == "No Content");
             }
@@ -1104,8 +1106,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 205);
                 REQUIRE(response.http_reason_phrase() == "Reset Content");
             }
@@ -1117,8 +1119,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 206);
                 REQUIRE(response.http_reason_phrase() == "Partial Content");
             }
@@ -1130,8 +1132,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 207);
                 REQUIRE(response.http_reason_phrase() == "Multi-Status");
             }
@@ -1143,8 +1145,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 208);
                 REQUIRE(response.http_reason_phrase() == "Already Reported");
             }
@@ -1156,8 +1158,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 226);
                 REQUIRE(response.http_reason_phrase() == "IM Used");
             }
@@ -1169,8 +1171,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 300);
                 REQUIRE(response.http_reason_phrase() == "Multiple Choices");
             }
@@ -1182,8 +1184,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 301);
                 REQUIRE(response.http_reason_phrase() == "Moved Permanently");
             }
@@ -1195,8 +1197,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 302);
                 REQUIRE(response.http_reason_phrase() == "Found");
             }
@@ -1208,8 +1210,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 303);
                 REQUIRE(response.http_reason_phrase() == "See Other");
             }
@@ -1221,8 +1223,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 304);
                 REQUIRE(response.http_reason_phrase() == "Not Modified");
             }
@@ -1234,8 +1236,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 305);
                 REQUIRE(response.http_reason_phrase() == "Use Proxy");
             }
@@ -1247,8 +1249,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 306);
                 REQUIRE(response.http_reason_phrase() == "Switch Proxy");
             }
@@ -1260,8 +1262,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 307);
                 REQUIRE(response.http_reason_phrase() == "Temporary Redirect");
             }
@@ -1273,8 +1275,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 308);
                 REQUIRE(response.http_reason_phrase() == "Permanent Redirect");
             }
@@ -1286,8 +1288,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 400);
                 REQUIRE(response.http_reason_phrase() == "Bad request");
             }
@@ -1299,8 +1301,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 401);
                 REQUIRE(response.http_reason_phrase() == "Unauthorized");
             }
@@ -1312,8 +1314,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 402);
                 REQUIRE(response.http_reason_phrase() == "Payment Required");
             }
@@ -1325,8 +1327,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 403);
                 REQUIRE(response.http_reason_phrase() == "Forbidden");
             }
@@ -1338,8 +1340,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 404);
                 REQUIRE(response.http_reason_phrase() == "Not Found");
             }
@@ -1351,8 +1353,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 405);
                 REQUIRE(response.http_reason_phrase() == "Method Not Allowed");
             }
@@ -1364,8 +1366,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 406);
                 REQUIRE(response.http_reason_phrase() == "Not Acceptable");
             }
@@ -1377,8 +1379,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 407);
                 REQUIRE(response.http_reason_phrase() == "Proxy Authentication Required");
             }
@@ -1390,8 +1392,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 408);
                 REQUIRE(response.http_reason_phrase() == "request Timeout");
             }
@@ -1403,8 +1405,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 409);
                 REQUIRE(response.http_reason_phrase() == "Conflict");
             }
@@ -1416,8 +1418,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 410);
                 REQUIRE(response.http_reason_phrase() == "Gone");
             }
@@ -1429,8 +1431,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 411);
                 REQUIRE(response.http_reason_phrase() == "Length Required");
             }
@@ -1442,8 +1444,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 412);
                 REQUIRE(response.http_reason_phrase() == "Precondition Failed");
             }
@@ -1455,8 +1457,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 413);
                 REQUIRE(response.http_reason_phrase() == "Payload Too Large");
             }
@@ -1468,8 +1470,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 414);
                 REQUIRE(response.http_reason_phrase() == "URI Too Long");
             }
@@ -1481,8 +1483,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 415);
                 REQUIRE(response.http_reason_phrase() == "Unsupported Media Type");
             }
@@ -1494,8 +1496,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 416);
                 REQUIRE(response.http_reason_phrase() == "Range Not Satisfiable");
             }
@@ -1507,8 +1509,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 417);
                 REQUIRE(response.http_reason_phrase() == "Expectation Failed");
             }
@@ -1520,8 +1522,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 418);
                 REQUIRE(response.http_reason_phrase() == "I'm a teapot");
             }
@@ -1533,8 +1535,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 421);
                 REQUIRE(response.http_reason_phrase() == "Misdirected request");
             }
@@ -1546,8 +1548,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 422);
                 REQUIRE(response.http_reason_phrase() == "Unprocessable Entity");
             }
@@ -1559,8 +1561,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 423);
                 REQUIRE(response.http_reason_phrase() == "Locked");
             }
@@ -1572,8 +1574,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 424);
                 REQUIRE(response.http_reason_phrase() == "Failed Dependency");
             }
@@ -1585,8 +1587,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 426);
                 REQUIRE(response.http_reason_phrase() == "Upgrade Required");
             }
@@ -1598,8 +1600,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 428);
                 REQUIRE(response.http_reason_phrase() == "Precondition Failed");
             }
@@ -1611,8 +1613,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 429);
                 REQUIRE(response.http_reason_phrase() == "Too Many requests");
             }
@@ -1624,8 +1626,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 431);
                 REQUIRE(response.http_reason_phrase() == "request Header Fields Too Large");
             }
@@ -1637,8 +1639,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 451);
                 REQUIRE(response.http_reason_phrase() == "Unavailable For Legal Reasons");
             }
@@ -1650,8 +1652,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 500);
                 REQUIRE(response.http_reason_phrase() == "Internal Server Error");
             }
@@ -1663,8 +1665,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 501);
                 REQUIRE(response.http_reason_phrase() == "Not Implemented");
             }
@@ -1676,8 +1678,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 502);
                 REQUIRE(response.http_reason_phrase() == "Bad Gateway");
             }
@@ -1689,8 +1691,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 503);
                 REQUIRE(response.http_reason_phrase() == "Service Unavailable");
             }
@@ -1702,8 +1704,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 504);
                 REQUIRE(response.http_reason_phrase() == "Gateway Timeout");
             }
@@ -1715,8 +1717,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 505);
                 REQUIRE(response.http_reason_phrase() == "HTTP Version Not Supported");
             }
@@ -1728,8 +1730,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 506);
                 REQUIRE(response.http_reason_phrase() == "Variant Also Negotiates");
             }
@@ -1741,8 +1743,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 507);
                 REQUIRE(response.http_reason_phrase() == "Insufficient Storage");
             }
@@ -1754,8 +1756,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 508);
                 REQUIRE(response.http_reason_phrase() == "Loop Detected");
             }
@@ -1767,8 +1769,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 510);
                 REQUIRE(response.http_reason_phrase() == "Not Extended");
             }
@@ -1780,8 +1782,8 @@ SCENARIO("RESPONSE: Parsing up to a reason phrase.")
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::incomplete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_reason_phrase);
+                REQUIRE(result == response::parse_result::incomplete);
+                REQUIRE(response.state() == response::parse_state::parsed_reason_phrase);
                 REQUIRE(response.http_status_code() == 511);
                 REQUIRE(response.http_reason_phrase() == "Network Authentication Required");
             }
@@ -1797,15 +1799,15 @@ SCENARIO("RESPONSE: Parsing up through headers.")
             "HTTP/1.1 200 OK\r\n"
             "X-random-header: nullvalue\r\n"
             "\r\n";
-        liquid::response response{};
+        response response{};
 
         WHEN("Parsed")
         {
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::complete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_headers);
+                REQUIRE(result == response::parse_result::complete);
+                REQUIRE(response.state() == response::parse_state::parsed_headers);
             }
         }
     }
@@ -1820,15 +1822,15 @@ SCENARIO("RESPONSE: Parsing a content length http_body.")
             "Content-Length: 5\r\n"
             "\r\n"
             "12345";
-        liquid::response response{};
+        response response{};
 
         WHEN("Parsed")
         {
             auto result = response.parse(response_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == liquid::response::parse_result::complete);
-                REQUIRE(response.state() == liquid::response::parse_state::parsed_body);
+                REQUIRE(result == response::parse_result::complete);
+                REQUIRE(response.state() == response::parse_state::parsed_body);
                 REQUIRE(response.http_body().has_value());
                 REQUIRE(response.http_body().value() == "12345");
             }

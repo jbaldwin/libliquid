@@ -1,13 +1,13 @@
 #pragma once
 
-#include "liquid/method.hpp"
-#include "liquid/version.hpp"
+#include "turbohttp/method.hpp"
+#include "turbohttp/version.hpp"
 
 #include <string>
 #include <optional>
 #include <array>
 
-namespace liquid
+namespace turbo::http
 {
 
 enum class body_type
@@ -296,4 +296,4 @@ private:
     std::optional<std::string_view> m_body{};
 };
 
-} // namespace liquid
+} // namespace turbo::http

@@ -1,47 +1,30 @@
-cmake_minimum_required(VERSION 3.11)
-project(libliquid_perf)
+cmake_minimum_required(VERSION 3.16)
+project(libturbohttp_perf)
 
-set(LIBLIQUID_PERF_SOURCE_FILES
+set(LIBTURBOHTTP_PERF_SOURCE_FILES
     main.cpp
 )
 
-add_executable(${PROJECT_NAME} ${LIBLIQUID_PERF_SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE liquid)
+add_executable(${PROJECT_NAME} ${LIBTURBOHTTP_PERF_SOURCE_FILES})
+target_link_libraries(${PROJECT_NAME} PRIVATE turbohttp)
 
-target_compile_options(${PROJECT_NAME} PRIVATE
-    -Wall
-    -Wextra
-    -Weffc++
-    -Werror
-    -Wpedantic
-    -pedantic-errors
-)
+if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
+    target_compile_options(
+        ${PROJECT_NAME} PRIVATE
+        -Wno-unknown-pragmas
+    )
+endif()
+if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        -Wall
+        -Wextra
+        -Weffc++
+        -Werror
+        -Wpedantic
+        -pedantic-errors
+    )
+endif()
 
 if(USE_SSE42)
     target_compile_options(${PROJECT_NAME} PRIVATE -msse4.2)
-endif()
-
-if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    message("${PROJECT_NAME} is building Debug")
-    target_compile_options(
-        ${PROJECT_NAME} PRIVATE
-        -O0
-        -g
-        -gdwarf-2
-    )
-    if(D_GLIBCXX_DEBUG)
-        message("${PROJECT_NAME} D_GLIBCXX_DEBUG is ON")
-        target_compile_options(${PROJECT_NAME} PRIVATE -D_GLIBCXX_DEBUG)
-    else()
-        message("${PROJECT_NAME} D_GLIBCXX_DEBUG is OFF")
-    endif()
-
-else() # "Release"
-    message("${PROJECT_NAME} is building Release")
-    target_compile_options(
-        ${PROJECT_NAME} PRIVATE
-        -O3
-        -g
-        -gdwarf-2
-    )
 endif()

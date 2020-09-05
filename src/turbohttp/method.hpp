@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace liquid
+namespace turbo::http
 {
 
 enum class method
@@ -56,4 +56,4 @@ inline auto to_string(method m) -> const std::string&
     }
 }
 
-} // namespace liquid
+} // namespace turbo::http
