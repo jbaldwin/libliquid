@@ -1,27 +1,27 @@
 cmake_minimum_required(VERSION 3.16)
-project(liquid CXX)
+project(turbohttp CXX)
 
-option(LIQUID_USE_SSE42     "Build with SSE4.2 instructions, Default=ON." ON)
-option(LIQUID_BUILD_TESTS   "Build the tests, Default=ON." ON)
-option(LIQUID_CODE_COVERAGE "Enable code coverage, tests must also be enabled, Default=OFF" OFF)
+option(TURBOHTTP_USE_SSE42     "Build with SSE4.2 instructions, Default=ON." ON)
+option(TURBOHTTP_BUILD_TESTS   "Build the tests, Default=ON." ON)
+option(TURBOHTTP_CODE_COVERAGE "Enable code coverage, tests must also be enabled, Default=OFF" OFF)
 
-message("${PROJECT_NAME} LIQUID_USE_SSE42       = ${LIQUID_USE_SSE42}")
-message("${PROJECT_NAME} LIQUID_BUILD_TESTS     = ${LIQUID_BUILD_TESTS}")
-message("${PROJECT_NAME} LIQUID_CODE_COVERAGE   = ${LIQUID_CODE_COVERAGE}")
+message("${PROJECT_NAME} TURBOHTTP_USE_SSE42       = ${TURBOHTTP_USE_SSE42}")
+message("${PROJECT_NAME} TURBOHTTP_BUILD_TESTS     = ${TURBOHTTP_BUILD_TESTS}")
+message("${PROJECT_NAME} TURBOHTTP_CODE_COVERAGE   = ${TURBOHTTP_CODE_COVERAGE}")
 
-set(LIBLIQUID_SOURCE_FILES
-    src/liquid/liquid.hpp
-    src/liquid/method.hpp
-    src/liquid/parser.hpp src/liquid/parser.cpp
-    src/liquid/version.hpp
+set(LIBTURBOHTTP_SOURCE_FILES
+    src/turbohttp/method.hpp
+    src/turbohttp/parser.hpp src/turbohttp/parser.cpp
+    src/turbohttp/turbohttp.hpp
+    src/turbohttp/version.hpp
 )
 
-add_library(${PROJECT_NAME} STATIC ${LIBLIQUID_SOURCE_FILES})
+add_library(${PROJECT_NAME} STATIC ${LIBTURBOHTTP_SOURCE_FILES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 target_include_directories(${PROJECT_NAME} PUBLIC src)
 
-if(LIQUID_USE_SSE42)
+if(TURBOHTTP_USE_SSE42)
     target_compile_options(${PROJECT_NAME} PUBLIC -msse4.2)
 endif()
 
@@ -42,8 +42,8 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     )
 endif()
 
-if(LIQUID_BUILD_TESTS)
-    if(LIQUID_CODE_COVERAGE)
+if(TURBOHTTP_BUILD_TESTS)
+    if(TURBOHTTP_CODE_COVERAGE)
         target_compile_options(${PROJECT_NAME} PRIVATE --coverage)
         target_link_libraries(${PROJECT_NAME} PRIVATE gcov)
     endif()

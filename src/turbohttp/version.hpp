@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace liquid
+namespace turbo::http
 {
 
 enum class version
@@ -30,4 +30,4 @@ inline auto to_string(version v) -> const std::string&
     }
 }
 
-} // namespace liquid
+} // namespace turbo::http
