@@ -3,10 +3,6 @@
 #include <charconv>
 #include <cstring>
 
-#ifdef __SSE4_2__
-#include <immintrin.h>
-#endif
-
 #define UNLIKELY(EXPR) __glibc_unlikely(EXPR)
 #define LIKELY(EXPR) __glibc_likely(EXPR)
 
@@ -117,67 +113,28 @@ auto is_http_ws(char c) -> bool
 
 /**
  * This function will quickly find the next \r\n in the data stream starting at 'index' position
- * for up to 'data_length' bytes.  Note that 'index' is updated to the byte before \r\n.
+ * If found 'index' is updated to the byte before \r\n.
  * @param data The input data stream to find \r\n in.
- * @param data_length The maximum number of bytes to check into 'data', this is probably data.length() most of the time.
  * @param index [out] This parameter marks the starting position and then the index of (\r\n - 1). The previous byte.
  *                    Note that 'index' is mutated regardless if the \r\n is found or not.
  * @return True if \r\n was found, otherwise false.
  */
-[[gnu::always_inline]]
 static inline auto find_crlf(
     std::string& data,
-    size_t data_length,
     size_t& index
 ) -> bool
 {
-    bool found_crlf = false;
-    // The parser has found the name of the header, now parse for the value.
-#ifdef __SSE4_2__
-    static const int sse_cmp_mode = _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ORDERED | _SIDD_LEAST_SIGNIFICANT;
-    static const unsigned char crlf_delim[] = "\r\n";
-    ssize_t remaining_bytes = data_length - index;
-    while(remaining_bytes > 0)
+    auto pos = data.find("\r\n", index);
+    if(LIKELY(pos != std::string::npos))
     {
-        const ssize_t len = (remaining_bytes >= 16) ? 16 : remaining_bytes;
-        const __m128i simd_a = _mm_loadu_si128((__m128i*)&data[index]);
-        const __m128i simd_b = _mm_loadu_si128((__m128i*)&crlf_delim[0]);
-        int result = _mm_cmpestri(simd_b, 2, simd_a , len, sse_cmp_mode);
-        if(result != 16) // always returns 16 on failure even if len < 16
-        {
-            index += static_cast<size_t>(result) - 1;
-            found_crlf = true;
-            break; // while(remaining_bytes > 0)
-        }
-        index += 16; // doesn't matter, constant is significantly better, but ssize_t is important on remaining_bytes!
-        remaining_bytes = data_length - index;
+        index = pos - 1; // index should point at the last char in the header.
+        return true;
     }
-#else
-    while(index + 8 < data_length)
+    else
     {
-        if(data[index] == HTTP_CR) break;
-        if(data[++index] == HTTP_CR) break;
-        if(data[++index] == HTTP_CR) break;
-        if(data[++index] == HTTP_CR) break;
-        if(data[++index] == HTTP_CR) break;
-        if(data[++index] == HTTP_CR) break;
-        if(data[++index] == HTTP_CR) break;
-        if(data[++index] == HTTP_CR) break;
-        ++index;
+        index = data.length(); // Don't re-parse stuff thats already been checked.
+        return false;
     }
-
-    // check one by one or until incomplete
-    while(index < data_length)
-    {
-        if(data[index++] == HTTP_CR && index < data_length && data[index] == HTTP_LF)
-        {
-            index -= 2;
-            found_crlf = true;
-            break;
-        }
-    }
-#endif
-    return found_crlf;
 }
 
 enum class parse_version_result
@@ -229,21 +186,22 @@ static auto parse_version_common(
     return parse_version_result::advance;
 }
 
-static auto parse_request_headers(
+template<typename parse_state, typename parse_result>
+static auto parse_headers_common(
     std::string& data,
     size_t& m_pos,
     size_t& m_header_count,
     std::array<std::pair<std::string_view, std::string_view>, 64>& m_headers,
     body_type& m_body_type,
     size_t& m_content_length,
-    request::parse_state& m_parse_state
-) -> request::parse_result
+    parse_state& m_parse_state
+) -> parse_result
 {
     size_t data_length = data.length();
     // missing empty line or headers
     if(data_length == m_pos)
     {
-        return request::parse_result::incomplete;
+        return parse_result::incomplete;
     }
 
     // If there are exactly 2 characters left and its the newline,
@@ -255,7 +213,7 @@ static auto parse_request_headers(
         )
     {
         m_pos += 2; // advance twice for the consumed values.
-        return request::parse_result::advance;
+        return parse_result::advance;
     }
 
     // There must be some headers here, parse them!
@@ -265,36 +223,7 @@ static auto parse_request_headers(
         size_t value_start;
         size_t name_end = name_start;
 
-#ifdef __SSE4_2__
-        static const int sse_cmp_mode = _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ORDERED | _SIDD_LEAST_SIGNIFICANT;
-        static const unsigned char colon_delim[] = ":";
-
-        ssize_t remaining_bytes = data_length - name_end;
-        bool found_colon = false;
-        while(remaining_bytes > 0)
-        {
-            const ssize_t len = (remaining_bytes > 16) ? 16 : remaining_bytes;
-            const __m128i simd_a = _mm_loadu_si128((__m128i*)&data[name_end]);
-            const __m128i simd_b = _mm_loadu_si128((__m128i*)&colon_delim[0]);
-            int result = _mm_cmpestri(simd_b, 1, simd_a, len, sse_cmp_mode);
-            if(result != 16)
-            {
-                name_end += result;
-                value_start = name_end + 1;
-                found_colon = true;
-                break; // while(remaining_bytes > 0)
-            }
-            name_end += 16;
-            remaining_bytes = data_length - name_end;
-        }
-
-        if(!found_colon)
-        {
-            return request::parse_result::incomplete;
-        }
-#else
 #define CHECK_FOR_COLON() { if(data[++name_end] == ':') break; }
-
         // lets check 8 chars in a row!
         while(name_end + 8 < data_length)
         {
@@ -323,10 +252,21 @@ static auto parse_request_headers(
             }
             else
             {
-                return request::parse_result::incomplete;
+                return parse_result::incomplete;
             }
         }
-#endif
+
+        // Currently std::string.find is not faster than the hand rolled loop.
+        // auto pos = data.find(':', name_end);
+        // if(LIKELY(pos != std::string::npos))
+        // {
+        //     value_start = pos + 1; // Point to the first char after ':'.
+        //     name_end = pos;
+        // }
+        // else
+        // {
+        //     return parse_result::incomplete;
+        // }
 
         // Walk value forwards to left trim, this is unlikely to be more than 1 HTTP_SP or HTTP_HTAB
         while(value_start < data_length && is_http_ws(data[value_start]))
@@ -336,9 +276,9 @@ static auto parse_request_headers(
 
         // The parser has found the name of the header, now parse for the value.
         size_t value_end = value_start;
-        if(!find_crlf(data, data_length, value_end))
+        if(!find_crlf(data, value_end))
         {
-            return request::parse_result::incomplete;
+            return parse_result::incomplete;
         }
 
         // Update the current position after finding the end of the header,
@@ -354,7 +294,7 @@ static auto parse_request_headers(
         // We are out of space :(
         if(m_header_count == 64)
         {
-            return request::parse_result::maximum_headers_exceeded;
+            return parse_result::maximum_headers_exceeded;
         }
 
         m_headers[m_header_count] =
@@ -394,12 +334,12 @@ static auto parse_request_headers(
         )
         {
             m_pos += 2; // ADVANCE two times for the consumed values and setup for next parse stage
-            m_parse_state = request::parse_state::parsed_headers;
+            m_parse_state = parse_state::parsed_headers;
             break; // while(true)
         }
     }
 
-    return request::parse_result::advance;
+    return parse_result::advance;
 }
 
 auto request::parse(std::string& data) -> request::parse_result
@@ -428,7 +368,7 @@ auto request::parse(std::string& data) -> request::parse_result
         }
     }
 
-    if(m_parse_state == request::parse_state::parsed_url)
+    if(m_parse_state == request::parse_state::parsed_uri)
     {
         auto result = parse_version(data);
         if(result != request::parse_result::advance)
@@ -711,7 +651,7 @@ auto request::parse_uri(std::string& data) -> request::parse_result
     m_uri = std::string_view{&data[m_uri_start_pos], m_pos - m_uri_start_pos};
 
     // If the parser gets this far then its successfully parsed the URI.
-    m_parse_state = request::parse_state::parsed_url;
+    m_parse_state = request::parse_state::parsed_uri;
 
     return request::parse_result::advance;
 }
@@ -755,7 +695,7 @@ auto request::parse_version(std::string& data) -> request::parse_result
 
 auto request::parse_headers(std::string& data) -> request::parse_result
 {
-    return parse_request_headers(
+    return parse_headers_common<request::parse_state, request::parse_result>(
         data,
         m_pos,
         m_header_count,
@@ -1029,7 +969,7 @@ auto response::parse_reason_phrase(std::string& data) -> response::parse_result
     // currently not handled by the parser and just looks for \r\n.
 
     size_t value_end = m_pos;
-    if(LIKELY(find_crlf(data, data.length(), value_end)))
+    if(LIKELY(find_crlf(data, value_end)))
     {
         // If found, value_end will be the byte before \r\n, so calculate the length + 1 for the string view.
         m_reason_phrase = std::string_view{&data[m_pos], value_end - m_pos + 1};
@@ -1043,182 +983,9 @@ auto response::parse_reason_phrase(std::string& data) -> response::parse_result
     }
 }
 
-static auto parse_response_headers(
-    std::string& data,
-    size_t& m_pos,
-    size_t& m_header_count,
-    std::array<std::pair<std::string_view, std::string_view>, 64>& m_headers,
-    body_type& m_body_type,
-    size_t& m_content_length,
-    response::parse_state& m_parse_state
-) -> response::parse_result
-{
-    size_t data_length = data.length();
-    // missing empty line or headers
-    if(data_length == m_pos)
-    {
-        return response::parse_result::incomplete;
-    }
-
-    // If there are exactly 2 characters left and its the newline,
-    // this request is complete as there are no headers.
-    if(
-            m_pos + 2 <= data_length
-        &&  data[m_pos] == HTTP_CR
-        &&  data[m_pos + 1] == HTTP_LF
-        )
-    {
-        m_pos += 2; // advance twice for the consumed values.
-        return response::parse_result::advance;
-    }
-
-    // There must be some headers here, parse them!
-    while(true)
-    {
-        size_t name_start = m_pos;
-        size_t value_start;
-        size_t name_end = name_start;
-
-#ifdef __SSE4_2__
-        static const int sse_cmp_mode = _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ORDERED | _SIDD_LEAST_SIGNIFICANT;
-        static const unsigned char colon_delim[] = ":";
-
-        ssize_t remaining_bytes = data_length - name_end;
-        bool found_colon = false;
-        while(remaining_bytes > 0)
-        {
-            const ssize_t len = (remaining_bytes > 16) ? 16 : remaining_bytes;
-            const __m128i simd_a = _mm_loadu_si128((__m128i*)&data[name_end]);
-            const __m128i simd_b = _mm_loadu_si128((__m128i*)&colon_delim[0]);
-            int result = _mm_cmpestri(simd_b, 1, simd_a, len, sse_cmp_mode);
-            if(result != 16)
-            {
-                name_end += result;
-                value_start = name_end + 1;
-                found_colon = true;
-                break; // while(remaining_bytes > 0)
-            }
-            name_end += 16;
-            remaining_bytes = data_length - name_end;
-        }
-
-        if(!found_colon)
-        {
-            return response::parse_result::incomplete;
-        }
-#else
-        #define CHECK_FOR_COLON() { if(data[++name_end] == ':') break; }
-
-        // lets check 8 chars in a row!
-        while(name_end + 8 < data_length)
-        {
-            CHECK_FOR_COLON();
-            CHECK_FOR_COLON();
-            CHECK_FOR_COLON();
-            CHECK_FOR_COLON();
-            CHECK_FOR_COLON();
-            CHECK_FOR_COLON();
-            CHECK_FOR_COLON();
-            CHECK_FOR_COLON();
-        }
-#undef CHECK_FOR_COLON
-
-        // go one by one...
-        while(true)
-        {
-            if(name_end < data_length)
-            {
-                if(data[name_end] == ':')
-                {
-                    value_start = name_end + 1;
-                    break; // while(true);
-                }
-                ++name_end;
-            }
-            else
-            {
-                return response::parse_result::incomplete;
-            }
-        }
-#endif
-
-        // Walk value forwards to left trim, this is unlikely to be more than 1 HTTP_SP or HTTP_HTAB
-        while(value_start < data_length && is_http_ws(data[value_start]))
-        {
-            ++value_start;
-        }
-
-        // The parser has found the name of the header, now parse for the value.
-        size_t value_end = value_start;
-        if(!find_crlf(data, data_length, value_end))
-        {
-            return response::parse_result::incomplete;
-        }
-
-        // Update the current position after finding the end of the header,
-        // since this loop expects to be on the first char its checking ADVANCE 3 times
-        m_pos = value_end + 3;
-
-        // Walk value end backwards to right trim
-        while(is_http_ws(data[value_end]))
-        {
-            --value_end;
-        }
-
-        // We are out of space :(
-        if(m_header_count == 64)
-        {
-            return response::parse_result::maximum_headers_exceeded;
-        }
-
-        m_headers[m_header_count] =
-        {
-            {&data[name_start], (name_end - name_start)},
-            {&data[value_start], (value_end - value_start + 1)}
-        };
-        // Before continuing, check to see if any of these headers give an indication if
-        // there is any body content.
-        if(m_body_type == body_type::no_body)
-        {
-            auto& [name, value] = m_headers[m_header_count];
-            if(
-                    internal_string_view_iequal(name, "transfer-encoding")
-                &&  internal_string_view_iequal(value, "chunked")
-                )
-            {
-                m_body_type = body_type::chunked;
-            }
-            else if(
-                    internal_string_view_iequal(name, "content-length")
-                &&  value.length() > 0
-                )
-            {
-                m_content_length = 0; // in the event from_chars fails, we'll get no body
-                std::from_chars(value.data(), value.data() + value.length(), m_content_length, 10);
-                m_body_type = body_type::content_length;
-            }
-        }
-        ++m_header_count;
-
-        // If this header line end with CRLF then this request has no more headers.
-        if(
-                m_pos + 1 < data_length
-            &&  data[m_pos] == HTTP_CR
-            &&  data[m_pos + 1] == HTTP_LF
-            )
-        {
-            m_pos += 2; // ADVANCE two times for the consumed values and setup for next parse stage
-            m_parse_state = response::parse_state::parsed_headers;
-            break; // while(true)
-        }
-    }
-
-    return response::parse_result::advance;
-}
-
 auto response::parse_headers(std::string& data) -> response::parse_result
 {
-    return parse_response_headers(
+    return parse_headers_common<response::parse_state, response::parse_result>(
         data,
         m_pos,
         m_header_count,
