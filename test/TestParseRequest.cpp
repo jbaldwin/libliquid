@@ -15,8 +15,8 @@ SCENARIO("REQUEST:Parsing an empty string.")
             auto result = request.parse(request_data);
             THEN("We expect the parser to not fail.")
             {
-                REQUIRE(result == request::parse_result::incomplete);
-                REQUIRE(request.state() == request::parse_state::start);
+                REQUIRE(result == request_parse_result::incomplete);
+                REQUIRE(request.state() == request_parse_state::start);
             }
         }
     }
@@ -34,9 +34,9 @@ SCENARIO("REQUEST:Parsing GET Method")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_method);
+                REQUIRE(request.state() == request_parse_state::parsed_method);
             }
         }
     }
@@ -51,8 +51,8 @@ SCENARIO("REQUEST:Parsing GET Method")
             auto result = request.parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == request::parse_result::incomplete);
-                REQUIRE(request.state() == request::parse_state::start);
+                REQUIRE(result == request_parse_result::incomplete);
+                REQUIRE(request.state() == request_parse_state::start);
             }
         }
 
@@ -62,8 +62,8 @@ SCENARIO("REQUEST:Parsing GET Method")
             auto result = request.parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == request::parse_result::incomplete);
-                REQUIRE(request.state() == request::parse_state::start);
+                REQUIRE(result == request_parse_result::incomplete);
+                REQUIRE(request.state() == request_parse_state::start);
             }
         }
 
@@ -73,8 +73,8 @@ SCENARIO("REQUEST:Parsing GET Method")
             auto result = request.parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == request::parse_result::incomplete);
-                REQUIRE(request.state() == request::parse_state::start);
+                REQUIRE(result == request_parse_result::incomplete);
+                REQUIRE(request.state() == request_parse_state::start);
             }
         }
 
@@ -84,9 +84,9 @@ SCENARIO("REQUEST:Parsing GET Method")
             auto result = request.parse(request_data);
             THEN("We expect the parser to return INCOMPLETE with method GET")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_method);
+                REQUIRE(request.state() == request_parse_state::parsed_method);
             }
         }
     }
@@ -104,9 +104,9 @@ SCENARIO("REQUEST:Parsing POST Method")
             auto result = request.parse(request_data);
             THEN("We expect the method to be POST")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::post);
-                REQUIRE(request.state() == request::parse_state::parsed_method);
+                REQUIRE(request.state() == request_parse_state::parsed_method);
             }
         }
     }
@@ -120,8 +120,8 @@ SCENARIO("REQUEST:Parsing POST Method")
             auto result = request.parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == request::parse_result::incomplete);
-                REQUIRE(request.state() == request::parse_state::start);
+                REQUIRE(result == request_parse_result::incomplete);
+                REQUIRE(request.state() == request_parse_state::start);
             }
         }
 
@@ -131,8 +131,8 @@ SCENARIO("REQUEST:Parsing POST Method")
             auto result = request.parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == request::parse_result::incomplete);
-                REQUIRE(request.state() == request::parse_state::start);
+                REQUIRE(result == request_parse_result::incomplete);
+                REQUIRE(request.state() == request_parse_state::start);
             }
         }
 
@@ -142,8 +142,8 @@ SCENARIO("REQUEST:Parsing POST Method")
             auto result = request.parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == request::parse_result::incomplete);
-                REQUIRE(request.state() == request::parse_state::start);
+                REQUIRE(result == request_parse_result::incomplete);
+                REQUIRE(request.state() == request_parse_state::start);
             }
         }
 
@@ -153,8 +153,8 @@ SCENARIO("REQUEST:Parsing POST Method")
             auto result = request.parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == request::parse_result::incomplete);
-                REQUIRE(request.state() == request::parse_state::start);
+                REQUIRE(result == request_parse_result::incomplete);
+                REQUIRE(request.state() == request_parse_state::start);
             }
         }
 
@@ -164,9 +164,9 @@ SCENARIO("REQUEST:Parsing POST Method")
             auto result = request.parse(request_data);
             THEN("We expect the parser to return INCOMPLETE")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::post);
-                REQUIRE(request.state() == request::parse_state::parsed_method);
+                REQUIRE(request.state() == request_parse_state::parsed_method);
             }
         }
     }
@@ -184,9 +184,9 @@ SCENARIO("REQUEST:Parsing PUT Method")
             auto result = request.parse(request_data);
             THEN("We expect the method to be PUT")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::put);
-                REQUIRE(request.state() == request::parse_state::parsed_method);
+                REQUIRE(request.state() == request_parse_state::parsed_method);
             }
         }
     }
@@ -204,9 +204,9 @@ SCENARIO("REQUEST:Parsing PATCH Method")
             auto result = request.parse(request_data);
             THEN("We expect the method to be PATCH")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::patch);
-                REQUIRE(request.state() == request::parse_state::parsed_method);
+                REQUIRE(request.state() == request_parse_state::parsed_method);
             }
         }
     }
@@ -224,9 +224,9 @@ SCENARIO("REQUEST:Parsing HEAD Method")
             auto result = request.parse(request_data);
             THEN("We expect the method to be HEAD")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::head);
-                REQUIRE(request.state() == request::parse_state::parsed_method);
+                REQUIRE(request.state() == request_parse_state::parsed_method);
             }
         }
     }
@@ -244,9 +244,9 @@ SCENARIO("REQUEST:Parsing DELETE Method")
             auto result = request.parse(request_data);
             THEN("We expect the method to be DELETE")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::http_delete);
-                REQUIRE(request.state() == request::parse_state::parsed_method);
+                REQUIRE(request.state() == request_parse_state::parsed_method);
             }
         }
     }
@@ -264,9 +264,9 @@ SCENARIO("REQUEST:Parsing a complete URI")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_uri);
+                REQUIRE(request.state() == request_parse_state::parsed_uri);
                 REQUIRE(request.http_uri() == "/derp.html");
             }
         }
@@ -285,9 +285,9 @@ SCENARIO("REQUEST:Parsing an incomplete URI")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and not have parsed the URI yet")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_method);
+                REQUIRE(request.state() == request_parse_state::parsed_method);
             }
         }
 
@@ -297,9 +297,9 @@ SCENARIO("REQUEST:Parsing an incomplete URI")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and not have parsed the URI yet")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_method);
+                REQUIRE(request.state() == request_parse_state::parsed_method);
             }
         }
 
@@ -309,9 +309,9 @@ SCENARIO("REQUEST:Parsing an incomplete URI")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and parsed the URI")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_uri);
+                REQUIRE(request.state() == request_parse_state::parsed_uri);
                 REQUIRE(request.http_uri() == "/derp.html?flerpity=merpity");
             }
         }
@@ -330,9 +330,9 @@ SCENARIO("REQUEST:Parsing a complete HTTP Version")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_version);
+                REQUIRE(request.state() == request_parse_state::parsed_version);
                 REQUIRE(request.http_uri() == "/derp.html");
                 REQUIRE(request.http_version() == version::v1_0);
             }
@@ -352,9 +352,9 @@ SCENARIO("REQUEST:Parsing an incomplete HTTP Version")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI but no version yet")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_uri);
+                REQUIRE(request.state() == request_parse_state::parsed_uri);
                 REQUIRE(request.http_uri() == "/derp.html");
             }
         }
@@ -365,9 +365,9 @@ SCENARIO("REQUEST:Parsing an incomplete HTTP Version")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI but no version yet")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_uri);
+                REQUIRE(request.state() == request_parse_state::parsed_uri);
                 REQUIRE(request.http_uri() == "/derp.html");
             }
         }
@@ -378,9 +378,9 @@ SCENARIO("REQUEST:Parsing an incomplete HTTP Version")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI but no version yet")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_uri);
+                REQUIRE(request.state() == request_parse_state::parsed_uri);
                 REQUIRE(request.http_uri() == "/derp.html");
             }
         }
@@ -391,9 +391,9 @@ SCENARIO("REQUEST:Parsing an incomplete HTTP Version")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI but no version yet")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_uri);
+                REQUIRE(request.state() == request_parse_state::parsed_uri);
                 REQUIRE(request.http_uri() == "/derp.html");
             }
         }
@@ -404,9 +404,9 @@ SCENARIO("REQUEST:Parsing an incomplete HTTP Version")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI but no version yet")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_uri);
+                REQUIRE(request.state() == request_parse_state::parsed_uri);
                 REQUIRE(request.http_uri() == "/derp.html");
             }
         }
@@ -417,9 +417,9 @@ SCENARIO("REQUEST:Parsing an incomplete HTTP Version")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI and have a version")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_version);
+                REQUIRE(request.state() == request_parse_state::parsed_version);
                 REQUIRE(request.http_uri() == "/derp.html");
                 REQUIRE(request.http_version() == version::v1_1);
             }
@@ -431,9 +431,9 @@ SCENARIO("REQUEST:Parsing an incomplete HTTP Version")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI and have a version and a complete request.")
             {
-                REQUIRE(result == request::parse_result::complete);
+                REQUIRE(result == request_parse_result::complete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_version);
+                REQUIRE(request.state() == request_parse_state::parsed_version);
                 REQUIRE(request.http_uri() == "/derp.html");
                 REQUIRE(request.http_version() == version::v1_1);
             }
@@ -453,11 +453,11 @@ SCENARIO("REQUEST:Parsing a body with zero headers.")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI but no version yet")
             {
-                REQUIRE(result == request::parse_result::complete);
+                REQUIRE(result == request_parse_result::complete);
                 REQUIRE(request.http_method() == method::get);
                 // This will never get updated to PARSED_BODY since its EOF stream,
                 // which doesnt' set parsed body since the parser cannot know if its the EOF stream or not.
-                REQUIRE(request.state() == request::parse_state::parsed_version);
+                REQUIRE(request.state() == request_parse_state::parsed_version);
                 REQUIRE(request.http_uri() == "/derp.html");
                 REQUIRE(request.http_header_count() == 0);
                 // This has a body but the parser will ignore it since it didn't get any indication to its length.
@@ -479,9 +479,9 @@ SCENARIO("REQUEST:Parsing a header line.")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI")
             {
-                REQUIRE(result == request::parse_result::complete);
+                REQUIRE(result == request_parse_result::complete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_headers);
+                REQUIRE(request.state() == request_parse_state::parsed_headers);
                 REQUIRE(request.http_uri() == "/derp.html");
                 REQUIRE(request.http_version() == version::v1_1);
                 REQUIRE(request.http_header_count() == 1);
@@ -508,9 +508,9 @@ SCENARIO("REQUEST:Parsing multiple header lines.")
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI")
             {
-                REQUIRE(result == request::parse_result::complete);
+                REQUIRE(result == request_parse_result::complete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_headers);
+                REQUIRE(request.state() == request_parse_state::parsed_headers);
                 REQUIRE(request.http_uri() == "/derp.html");
                 REQUIRE(request.http_version() == version::v1_1);
                 REQUIRE(request.http_header_count() == 3);
@@ -536,9 +536,9 @@ SCENARIO("REQUEST:Parsing multiple incomplete header lines.")
             auto result = request.parse(request_data);
             THEN("We expect to have parsed through the version.")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_version);
+                REQUIRE(request.state() == request_parse_state::parsed_version);
                 REQUIRE(request.http_uri() == "/derp.html");
                 REQUIRE(request.http_version() == version::v1_1);
                 REQUIRE(request.http_header_count() == 0);
@@ -554,9 +554,9 @@ SCENARIO("REQUEST:Parsing multiple incomplete header lines.")
             auto result = request.parse(request_data);
             THEN("We expect to have parsed a single header.")
             {
-                REQUIRE(result == request::parse_result::incomplete);
+                REQUIRE(result == request_parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_version);
+                REQUIRE(request.state() == request_parse_state::parsed_version);
                 REQUIRE(request.http_uri() == "/derp.html");
                 REQUIRE(request.http_version() == version::v1_1);
                 REQUIRE(request.http_header_count() == 1);
@@ -574,10 +574,10 @@ SCENARIO("REQUEST:Parsing multiple incomplete header lines.")
             auto result = request.parse(request_data);
             THEN("We expect to complete parsing the headers.")
             {
-                REQUIRE(result == request::parse_result::complete);
+                REQUIRE(result == request_parse_result::complete);
                 REQUIRE(request.http_method() == method::get);
                 // we've got a content length so a body will show up even if its empty
-                REQUIRE(request.state() == request::parse_state::parsed_body);
+                REQUIRE(request.state() == request_parse_state::parsed_body);
                 REQUIRE(request.http_uri() == "/derp.html");
                 REQUIRE(request.http_version() == version::v1_1);
                 REQUIRE(request.http_header_count() == 3);
@@ -606,9 +606,9 @@ SCENARIO("REQUEST:Parsing multiple header lines with arbitrary whitespace in the
             auto result = request.parse(request_data);
             THEN("We expect the method to be GET and have a parsed URI")
             {
-                REQUIRE(result == request::parse_result::complete);
+                REQUIRE(result == request_parse_result::complete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_headers);
+                REQUIRE(request.state() == request_parse_state::parsed_headers);
                 REQUIRE(request.http_uri() == "/derp.html");
                 REQUIRE(request.http_version() == version::v1_1);
                 REQUIRE(request.http_header_count() == 3);
@@ -637,11 +637,11 @@ SCENARIO("REQUEST:Parsing a request with an END OF STREAM body.")
             auto result = request.parse(request_data);
             THEN("We expect the body to be ignored.")
             {
-                REQUIRE(result == request::parse_result::complete);
+                REQUIRE(result == request_parse_result::complete);
                 REQUIRE(request.http_method() == method::post);
                 // This looks incorrect, but since END OF STREAM cannot be determined by the parser
                 // it never marks this 'body' method as complete so a subsequent call can pickup more data.
-                REQUIRE(request.state() == request::parse_state::parsed_headers);
+                REQUIRE(request.state() == request_parse_state::parsed_headers);
                 REQUIRE(request.http_uri() == "/derp?key=flerp");
                 REQUIRE(request.http_version() == version::v1_1);
                 REQUIRE(request.http_header_count() == 2);
@@ -657,11 +657,11 @@ SCENARIO("REQUEST:Parsing a request with an END OF STREAM body.")
             auto result = request.parse(request_data);
             THEN("We expect the body be ignored by the parser.")
             {
-                REQUIRE(result == request::parse_result::complete);
+                REQUIRE(result == request_parse_result::complete);
                 REQUIRE(request.http_method() == method::post);
                 // This looks incorrect, but since END OF STREAM cannot be determined by the parser
                 // it never marks this 'body' method as complete so a subsequent call can pickup more data.
-                REQUIRE(request.state() == request::parse_state::parsed_headers);
+                REQUIRE(request.state() == request_parse_state::parsed_headers);
                 REQUIRE(request.http_uri() == "/derp?key=flerp");
                 REQUIRE(request.http_version() == version::v1_1);
                 REQUIRE(request.http_header_count() == 2);
@@ -691,9 +691,9 @@ SCENARIO("REQUEST:Parsing a request with a Content-Length body.")
             auto result = request.parse(request_data);
             THEN("We expect the method to be POST and have a parsed URI and a full body.")
             {
-                REQUIRE(result == request::parse_result::complete);
+                REQUIRE(result == request_parse_result::complete);
                 REQUIRE(request.http_method() == method::post);
-                REQUIRE(request.state() == request::parse_state::parsed_body);
+                REQUIRE(request.state() == request_parse_state::parsed_body);
                 REQUIRE(request.http_uri() == "/derp.html");
                 REQUIRE(request.http_version() == version::v1_1);
                 REQUIRE(request.http_header_count() == 3);
@@ -731,9 +731,9 @@ SCENARIO("REQUEST:Parsing a request with a Transfer-Encoding: chunked body.")
             auto result = request.parse(request_data);
             THEN("We expect the method to be POST with a chunked encoded body.")
             {
-                REQUIRE(result == request::parse_result::complete);
+                REQUIRE(result == request_parse_result::complete);
                 REQUIRE(request.http_method() == method::post);
-                REQUIRE(request.state() == request::parse_state::parsed_body);
+                REQUIRE(request.state() == request_parse_state::parsed_body);
                 REQUIRE(request.http_uri() == "/derp.html");
                 REQUIRE(request.http_version() == version::v1_1);
                 REQUIRE(request.http_header_count() == 1);
@@ -781,9 +781,9 @@ SCENARIO("REQUEST:Parse PicoHTTPParser performance request.")
             auto result = request.parse(buffer);
             THEN("We expect it to parse correctly.")
             {
-                REQUIRE(result == request::parse_result::complete);
+                REQUIRE(result == request_parse_result::complete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_headers);
+                REQUIRE(request.state() == request_parse_state::parsed_headers);
                 REQUIRE(request.http_uri() == "/cookies");
                 REQUIRE(request.http_version() == version::v1_1);
                 REQUIRE(request.http_header_count() == 9);
@@ -796,6 +796,77 @@ SCENARIO("REQUEST:Parse PicoHTTPParser performance request.")
                 REQUIRE(request.http_header("Accept-Language").value() == "en-US,en;q=0.8");
                 REQUIRE(request.http_header("Accept-Charset").value() == "ISO-8859-1,utf-8;q=0.7,*;q=0.3");
                 REQUIRE(request.http_header("Cookie").value() == "name=wookie");
+            }
+        }
+    }
+}
+
+SCENARIO("REQUEST:http_header_for_each")
+{
+    GIVEN("The buffer")
+    {
+        std::string buffer =
+            "GET /cookies HTTP/1.1\r\n"
+            "Host: 127.0.0.1:8090\r\n"
+            "Connection: keep-alive\r\n"
+            "Cache-Control: max-age=0\r\n"
+            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
+            "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.56 Safari/537.17\r\n"
+            "Accept-Encoding: gzip,deflate,sdch\r\n"
+            "Accept-Language: en-US,en;q=0.8\r\n"
+            "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3\r\n"
+            "Cookie: name=wookie\r\n\r\n";
+
+        request request{};
+        WHEN("Parsed")
+        {
+            auto result = request.parse(buffer);
+            THEN("We expect it to parse correctly.")
+            {
+                REQUIRE(result == request_parse_result::complete);
+                REQUIRE(request.http_method() == method::get);
+                REQUIRE(request.state() == request_parse_state::parsed_headers);
+                REQUIRE(request.http_uri() == "/cookies");
+                REQUIRE(request.http_version() == version::v1_1);
+                REQUIRE(request.http_header_count() == 9);
+                request.http_header_for_each([](std::string_view name, std::string_view value) {
+                    if(name == "Host")
+                    {
+                        REQUIRE(value == "127.0.0.1:8090");
+                    }
+                    else if(name == "Connection")
+                    {
+                        REQUIRE(value == "keep-alive");
+                    }
+                    else if(name == "Cache-Control")
+                    {
+                        REQUIRE(value == "max-age=0");
+                    }
+                    else if(name == "Accept")
+                    {
+                        REQUIRE(value == "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+                    }
+                    else if(name == "User-Agent")
+                    {
+                        REQUIRE(value == "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.56 Safari/537.17");
+                    }
+                    else if(name == "Accept-Encoding")
+                    {
+                        REQUIRE(value == "gzip,deflate,sdch");
+                    }
+                    else if(name == "Accept-Language")
+                    {
+                        REQUIRE(value == "en-US,en;q=0.8");
+                    }
+                    else if(name == "Accept-Charset")
+                    {
+                        REQUIRE(value == "ISO-8859-1,utf-8;q=0.7,*;q=0.3");
+                    }
+                    else if(name == "Cookie")
+                    {
+                        REQUIRE(value == "name=wookie");
+                    }
+                });
             }
         }
     }

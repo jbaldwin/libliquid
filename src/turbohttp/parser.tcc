@@ -1,10 +1,12 @@
+#pragma once
+
 #include "turbohttp/parser.hpp"
 
 #include <charconv>
 #include <cstring>
 
-#define UNLIKELY(EXPR) __glibc_unlikely(EXPR)
-#define LIKELY(EXPR) __glibc_likely(EXPR)
+#define TURBO_UNLIKELY(EXPR) __glibc_unlikely(EXPR)
+#define TURBO_LIKELY(EXPR) __glibc_likely(EXPR)
 
 namespace turbo::http
 {
@@ -44,7 +46,7 @@ static constexpr int TOLOWER_TABLE_ADD[] = {
  * @param c ASCII to uppercase.
  * @return Uppercase'ed 'c'.
  */
-inline auto tolower_asciitable_add(int c) -> int
+static inline auto tolower_asciitable_add(int c) -> int
 {
     return c + TOLOWER_TABLE_ADD[c];
 }
@@ -55,7 +57,7 @@ inline auto tolower_asciitable_add(int c) -> int
  * @param b String view B to compare.
  * @return True if a == b with case insensitive comparison.
  */
-auto string_view_iequal(std::string_view a, std::string_view b) -> bool
+inline auto string_view_iequal(std::string_view a, std::string_view b) -> bool
 {
     const size_t len = a.length();
     if(len != b.length())
@@ -80,7 +82,7 @@ auto string_view_iequal(std::string_view a, std::string_view b) -> bool
  * @param b String view B to compare, assumes all characters are already 'tolower'.
  * @return True if a == b with tolower(a) == b.
  */
-auto internal_string_view_iequal(std::string_view a, std::string_view b) -> bool
+static auto internal_string_view_iequal(std::string_view a, std::string_view b) -> bool
 {
     const size_t len = a.length();
     if(len != b.length())
@@ -99,7 +101,7 @@ auto internal_string_view_iequal(std::string_view a, std::string_view b) -> bool
     return true;
 }
 
-auto is_http_ws(char c) -> bool
+static auto is_http_ws(char c) -> bool
 {
     switch(c)
     {
@@ -125,7 +127,7 @@ static inline auto find_crlf(
 ) -> bool
 {
     auto pos = data.find("\r\n", index);
-    if(LIKELY(pos != std::string::npos))
+    if(TURBO_LIKELY(pos != std::string::npos))
     {
         index = pos - 1; // index should point at the last char in the header.
         return true;
@@ -186,12 +188,12 @@ static auto parse_version_common(
     return parse_version_result::advance;
 }
 
-template<typename parse_state, typename parse_result>
+template<typename parse_state, typename parse_result, std::size_t header_count>
 static auto parse_headers_common(
     std::string& data,
     size_t& m_pos,
     size_t& m_header_count,
-    std::array<std::pair<std::string_view, std::string_view>, 64>& m_headers,
+    std::array<std::pair<std::string_view, std::string_view>, header_count>& m_headers,
     body_type& m_body_type,
     size_t& m_content_length,
     parse_state& m_parse_state
@@ -258,7 +260,7 @@ static auto parse_headers_common(
 
         // Currently std::string.find is not faster than the hand rolled loop.
         // auto pos = data.find(':', name_end);
-        // if(LIKELY(pos != std::string::npos))
+        // if(TURBO_LIKELY(pos != std::string::npos))
         // {
         //     value_start = pos + 1; // Point to the first char after ':'.
         //     name_end = pos;
@@ -292,7 +294,7 @@ static auto parse_headers_common(
         }
 
         // We are out of space :(
-        if(m_header_count == 64)
+        if(m_header_count == header_count)
         {
             return parse_result::maximum_headers_exceeded;
         }
@@ -342,45 +344,46 @@ static auto parse_headers_common(
     return parse_result::advance;
 }
 
-auto request::parse(std::string& data) -> request::parse_result
+template<std::size_t header_count>
+auto request<header_count>::parse(std::string& data) -> request_parse_result
 {
     if(data.empty())
     {
-        return request::parse_result::incomplete;
+        return request_parse_result::incomplete;
     }
 
-    if(m_parse_state == request::parse_state::start)
+    if(m_parse_state == request_parse_state::start)
     {
         auto result = parse_method(data);
-        if(result != request::parse_result::advance)
+        if(result != request_parse_result::advance)
         {
             return result;
         }
     }
 
     // After parsing the Method move on to parsing the URI.
-    if(m_parse_state == request::parse_state::parsed_method)
+    if(m_parse_state == request_parse_state::parsed_method)
     {
         auto result = parse_uri(data);
-        if(result != request::parse_result::advance)
+        if(result != request_parse_result::advance)
         {
             return result;
         }
     }
 
-    if(m_parse_state == request::parse_state::parsed_uri)
+    if(m_parse_state == request_parse_state::parsed_uri)
     {
         auto result = parse_version(data);
-        if(result != request::parse_result::advance)
+        if(result != request_parse_result::advance)
         {
             return result;
         }
     }
 
-    if(m_parse_state == request::parse_state::parsed_version)
+    if(m_parse_state == request_parse_state::parsed_version)
     {
         auto result = parse_headers(data);
-        if(result != request::parse_result::advance)
+        if(result != request_parse_result::advance)
         {
             return result;
         }
@@ -393,12 +396,12 @@ auto request::parse(std::string& data) -> request::parse_result
      * without access to the socket the parser has no way of knowing if its the end or,
      * thus we'll just report completion upon finishing parsing of the headers.
      */
-    if(    m_parse_state == request::parse_state::parsed_headers
+    if(    m_parse_state == request_parse_state::parsed_headers
         && m_body_type != body_type::no_body
     )
     {
         auto result = parse_body(data);
-        if(result != request::parse_result::advance)
+        if(result != request_parse_result::advance)
         {
             return result;
         }
@@ -406,10 +409,11 @@ auto request::parse(std::string& data) -> request::parse_result
 
     // Currently does not support trailing headers.
 
-    return request::parse_result::complete;
+    return request_parse_result::complete;
 }
 
-auto request::parse_method(std::string& data) -> request::parse_result
+template<std::size_t header_count>
+auto request<header_count>::parse_method(std::string& data) -> request_parse_result
 {
     size_t data_length = data.length();
 
@@ -421,14 +425,14 @@ auto request::parse_method(std::string& data) -> request::parse_result
             // do we have enough room to parse "G" "ET "?
             if(m_pos + 3 < data_length)
             {
-                ADVANCE_EXPECT('E', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('T', request::parse_result::method_unknown);
-                ADVANCE_EXPECT(HTTP_SP, request::parse_result::method_unknown);
+                ADVANCE_EXPECT('E', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('T', request_parse_result::method_unknown);
+                ADVANCE_EXPECT(HTTP_SP, request_parse_result::method_unknown);
                 m_method = method::get;
             }
             else
             {
-                return request::parse_result::incomplete;
+                return request_parse_result::incomplete;
             }
         }
             break;
@@ -448,14 +452,14 @@ auto request::parse_method(std::string& data) -> request::parse_result
                         // "PO" "ST "
                         if(m_pos + 3 < data_length)
                         {
-                            ADVANCE_EXPECT('S', request::parse_result::method_unknown);
-                            ADVANCE_EXPECT('T', request::parse_result::method_unknown);
-                            ADVANCE_EXPECT(HTTP_SP, request::parse_result::method_unknown);
+                            ADVANCE_EXPECT('S', request_parse_result::method_unknown);
+                            ADVANCE_EXPECT('T', request_parse_result::method_unknown);
+                            ADVANCE_EXPECT(HTTP_SP, request_parse_result::method_unknown);
                             m_method = method::post;
                         }
                         else
                         {
-                            return request::parse_result::incomplete;
+                            return request_parse_result::incomplete;
                         }
                     }
                         break;
@@ -464,13 +468,13 @@ auto request::parse_method(std::string& data) -> request::parse_result
                         // "PU" "T "
                         if(m_pos + 2 < data_length)
                         {
-                            ADVANCE_EXPECT('T', request::parse_result::method_unknown);
-                            ADVANCE_EXPECT(HTTP_SP, request::parse_result::method_unknown);
+                            ADVANCE_EXPECT('T', request_parse_result::method_unknown);
+                            ADVANCE_EXPECT(HTTP_SP, request_parse_result::method_unknown);
                             m_method = method::put;
                         }
                         else
                         {
-                            return request::parse_result::incomplete;
+                            return request_parse_result::incomplete;
                         }
                     }
                         break;
@@ -479,25 +483,25 @@ auto request::parse_method(std::string& data) -> request::parse_result
                         // "PA" "TCH "
                         if(m_pos + 4 < data_length)
                         {
-                            ADVANCE_EXPECT('T', request::parse_result::method_unknown);
-                            ADVANCE_EXPECT('C', request::parse_result::method_unknown);
-                            ADVANCE_EXPECT('H', request::parse_result::method_unknown);
-                            ADVANCE_EXPECT(HTTP_SP, request::parse_result::method_unknown);
+                            ADVANCE_EXPECT('T', request_parse_result::method_unknown);
+                            ADVANCE_EXPECT('C', request_parse_result::method_unknown);
+                            ADVANCE_EXPECT('H', request_parse_result::method_unknown);
+                            ADVANCE_EXPECT(HTTP_SP, request_parse_result::method_unknown);
                             m_method = method::patch;
                         }
                         else
                         {
-                            return request::parse_result::incomplete;
+                            return request_parse_result::incomplete;
                         }
                     }
                         break;
                     default:
-                        return request::parse_result::incomplete;
+                        return request_parse_result::incomplete;
                 }
             }
             else
             {
-                return request::parse_result::incomplete;
+                return request_parse_result::incomplete;
             }
 
         }
@@ -508,15 +512,15 @@ auto request::parse_method(std::string& data) -> request::parse_result
             // do we have enough room to parse "H ""EAD "?
             if(m_pos + 4 < data_length)
             {
-                ADVANCE_EXPECT('E', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('A', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('D', request::parse_result::method_unknown);
-                ADVANCE_EXPECT(HTTP_SP, request::parse_result::method_unknown);
+                ADVANCE_EXPECT('E', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('A', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('D', request_parse_result::method_unknown);
+                ADVANCE_EXPECT(HTTP_SP, request_parse_result::method_unknown);
                 m_method = method::head;
             }
             else
             {
-                return request::parse_result::incomplete;
+                return request_parse_result::incomplete;
             }
         }
             break;
@@ -526,17 +530,17 @@ auto request::parse_method(std::string& data) -> request::parse_result
             // do we have enough room to parse "D" "ELETE "?
             if(m_pos + 6 < data_length)
             {
-                ADVANCE_EXPECT('E', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('L', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('E', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('T', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('E', request::parse_result::method_unknown);
-                ADVANCE_EXPECT(HTTP_SP, request::parse_result::method_unknown);
+                ADVANCE_EXPECT('E', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('L', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('E', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('T', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('E', request_parse_result::method_unknown);
+                ADVANCE_EXPECT(HTTP_SP, request_parse_result::method_unknown);
                 m_method = method::http_delete;
             }
             else
             {
-                return request::parse_result::incomplete;
+                return request_parse_result::incomplete;
             }
         }
             break;
@@ -546,18 +550,18 @@ auto request::parse_method(std::string& data) -> request::parse_result
             // do we have enough room to parse "C" "ONNECT "?
             if(m_pos + 7 < data_length)
             {
-                ADVANCE_EXPECT('O', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('N', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('N', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('E', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('C', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('T', request::parse_result::method_unknown);
-                ADVANCE_EXPECT(HTTP_SP, request::parse_result::method_unknown);
+                ADVANCE_EXPECT('O', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('N', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('N', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('E', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('C', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('T', request_parse_result::method_unknown);
+                ADVANCE_EXPECT(HTTP_SP, request_parse_result::method_unknown);
                 m_method = method::connect;
             }
             else
             {
-                return request::parse_result::incomplete;
+                return request_parse_result::incomplete;
             }
         }
             break;
@@ -567,18 +571,18 @@ auto request::parse_method(std::string& data) -> request::parse_result
             // do we have enough room to parse "O" "PTIONS "?
             if(m_pos + 7 < data_length)
             {
-                ADVANCE_EXPECT('P', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('T', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('I', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('O', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('N', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('S', request::parse_result::method_unknown);
-                ADVANCE_EXPECT(HTTP_SP, request::parse_result::method_unknown);
+                ADVANCE_EXPECT('P', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('T', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('I', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('O', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('N', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('S', request_parse_result::method_unknown);
+                ADVANCE_EXPECT(HTTP_SP, request_parse_result::method_unknown);
                 m_method = method::options;
             }
             else
             {
-                return request::parse_result::incomplete;
+                return request_parse_result::incomplete;
             }
         }
             break;
@@ -589,30 +593,31 @@ auto request::parse_method(std::string& data) -> request::parse_result
 
             if(m_pos + 5 < data_length)
             {
-                ADVANCE_EXPECT('R', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('A', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('C', request::parse_result::method_unknown);
-                ADVANCE_EXPECT('E', request::parse_result::method_unknown);
-                ADVANCE_EXPECT(HTTP_SP, request::parse_result::method_unknown);
+                ADVANCE_EXPECT('R', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('A', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('C', request_parse_result::method_unknown);
+                ADVANCE_EXPECT('E', request_parse_result::method_unknown);
+                ADVANCE_EXPECT(HTTP_SP, request_parse_result::method_unknown);
                 m_method = method::trace;
             }
             else
             {
-                return request::parse_result::incomplete;
+                return request_parse_result::incomplete;
             }
         }
             break;
         default:
-            return request::parse_result::method_unknown;
+            return request_parse_result::method_unknown;
     }
 
     // If the parser gets this far then its successfully parsed the HTTP Method.
-    m_parse_state = request::parse_state::parsed_method;
+    m_parse_state = request_parse_state::parsed_method;
 
-    return request::parse_result::advance;
+    return request_parse_result::advance;
 }
 
-auto request::parse_uri(std::string& data) -> request::parse_result
+template<std::size_t header_count>
+auto request<header_count>::parse_uri(std::string& data) -> request_parse_result
 {
     ADVANCE(); // Previous parse leaves us on the HTTP_SP token before the URI, advance past it.
     size_t data_length = data.length();
@@ -643,7 +648,7 @@ auto request::parse_uri(std::string& data) -> request::parse_result
         else
         {
             // If the end of the data is found with no HTTP_SP then more data is needed.
-            return request::parse_result::incomplete;
+            return request_parse_result::incomplete;
         }
     }
 
@@ -651,12 +656,13 @@ auto request::parse_uri(std::string& data) -> request::parse_result
     m_uri = std::string_view{&data[m_uri_start_pos], m_pos - m_uri_start_pos};
 
     // If the parser gets this far then its successfully parsed the URI.
-    m_parse_state = request::parse_state::parsed_uri;
+    m_parse_state = request_parse_state::parsed_uri;
 
-    return request::parse_result::advance;
+    return request_parse_result::advance;
 }
 
-auto request::parse_version(std::string& data) -> request::parse_result
+template<std::size_t header_count>
+auto request<header_count>::parse_version(std::string& data) -> request_parse_result
 {
     ADVANCE(); // the standalone function expects to be on the first character.
 
@@ -665,37 +671,38 @@ auto request::parse_version(std::string& data) -> request::parse_result
     switch(result)
     {
         case parse_version_result::malformed:
-            return request::parse_result::http_version_malformed;
+            return request_parse_result::http_version_malformed;
         case parse_version_result::unknown:
-            return request::parse_result::http_version_unknown;
+            return request_parse_result::http_version_unknown;
         case parse_version_result::incomplete:
-            return request::parse_result::incomplete;
+            return request_parse_result::incomplete;
         case parse_version_result::advance:
         {
-            if (UNLIKELY(m_pos + 2 >= data.length()))
+            if (TURBO_UNLIKELY(m_pos + 2 >= data.length()))
             {
-                return request::parse_result::incomplete;
+                return request_parse_result::incomplete;
             }
             else
             {
                 // Need to also check for trailing \r\n in requests
-                ADVANCE_EXPECT(HTTP_CR, request::parse_result::http_version_malformed);
-                ADVANCE_EXPECT(HTTP_LF, request::parse_result::http_version_malformed);
+                ADVANCE_EXPECT(HTTP_CR, request_parse_result::http_version_malformed);
+                ADVANCE_EXPECT(HTTP_LF, request_parse_result::http_version_malformed);
                 ADVANCE(); // Next section expects to be on its starting position
             }
 
-            m_parse_state = request::parse_state::parsed_version;
-            return request::parse_result::advance;
+            m_parse_state = request_parse_state::parsed_version;
+            return request_parse_result::advance;
         }
     }
 
     // impossible but gcc complains
-    return request::parse_result::http_version_unknown;
+    return request_parse_result::http_version_unknown;
 }
 
-auto request::parse_headers(std::string& data) -> request::parse_result
+template<std::size_t header_count>
+auto request<header_count>::parse_headers(std::string& data) -> request_parse_result
 {
-    return parse_headers_common<request::parse_state, request::parse_result>(
+    return parse_headers_common<request_parse_state, request_parse_result, header_count>(
         data,
         m_pos,
         m_header_count,
@@ -706,7 +713,8 @@ auto request::parse_headers(std::string& data) -> request::parse_result
     );
 }
 
-auto request::parse_body(std::string& data) -> request::parse_result
+template<std::size_t header_count>
+auto request<header_count>::parse_body(std::string& data) -> request_parse_result
 {
     size_t data_length = data.length();
     switch(m_body_type)
@@ -737,7 +745,7 @@ auto request::parse_body(std::string& data) -> request::parse_result
 
                 if(!chunk_size_end_found)
                 {
-                    return request::parse_result::incomplete;
+                    return request_parse_result::incomplete;
                 }
 
                 size_t chunk_length{0};
@@ -758,8 +766,8 @@ auto request::parse_body(std::string& data) -> request::parse_result
                         m_content_length += chunk_length; // Keep track of the entire size though content length.
                         m_body.emplace(&data[m_body_start], m_content_length);
 
-                        ADVANCE_EXPECT(HTTP_CR, request::parse_result::chunk_malformed);
-                        ADVANCE_EXPECT(HTTP_LF, request::parse_result::chunk_malformed);
+                        ADVANCE_EXPECT(HTTP_CR, request_parse_result::chunk_malformed);
+                        ADVANCE_EXPECT(HTTP_LF, request_parse_result::chunk_malformed);
                         ADVANCE(); // This chunk parser expects to be on the first byte of the chunk
                     }
                 }
@@ -769,16 +777,16 @@ auto request::parse_body(std::string& data) -> request::parse_result
                     if(chunk_size_end + 3 <= data_length) // need \n\r\n
                     {
                         m_pos = chunk_size_end + 1; // strip the \n trailing chunk_size_end
-                        ADVANCE_EXPECT(HTTP_CR, request::parse_result::chunk_malformed);
-                        ADVANCE_EXPECT(HTTP_LF, request::parse_result::chunk_malformed);
-                        m_parse_state = request::parse_state::parsed_body;
+                        ADVANCE_EXPECT(HTTP_CR, request_parse_result::chunk_malformed);
+                        ADVANCE_EXPECT(HTTP_LF, request_parse_result::chunk_malformed);
+                        m_parse_state = request_parse_state::parsed_body;
                         break; // while(true)
                     }
                     else
                     {
                         // its possible to infer the last two bytes *should* be CR LF, but technically
                         // it is incomplete without them
-                        return request::parse_result::incomplete;
+                        return request_parse_result::incomplete;
                     }
                 }
             }
@@ -789,11 +797,11 @@ auto request::parse_body(std::string& data) -> request::parse_result
             if(m_pos + m_content_length >= data_length)
             {
                 m_body.emplace(&data[m_pos], m_content_length);
-                m_parse_state = request::parse_state::parsed_body;
+                m_parse_state = request_parse_state::parsed_body;
             }
             else
             {
-                return request::parse_result::incomplete;
+                return request_parse_result::incomplete;
             }
         }
             break;
@@ -802,12 +810,13 @@ auto request::parse_body(std::string& data) -> request::parse_result
             break;
     }
 
-    return request::parse_result::advance;
+    return request_parse_result::advance;
 }
 
-auto request::reset() -> void
+template<std::size_t header_count>
+auto request<header_count>::reset() -> void
 {
-    m_parse_state = request::parse_state::start;
+    m_parse_state = request_parse_state::start;
     m_pos = 0;
     //m_method{method::get};
     m_uri_start_pos = 0;
@@ -821,7 +830,8 @@ auto request::reset() -> void
     m_body = std::nullopt;
 }
 
-auto request::http_header(std::string_view name) const -> std::optional<std::string_view>
+template<std::size_t header_count>
+auto request<header_count>::http_header(std::string_view name) const -> std::optional<std::string_view>
 {
     for(size_t i = 0; i < m_header_count; ++i)
     {
@@ -835,64 +845,66 @@ auto request::http_header(std::string_view name) const -> std::optional<std::str
     return std::optional<std::string_view>{};
 }
 
-auto response::parse(std::string& data) -> response::parse_result
+template<std::size_t header_count>
+auto response<header_count>::parse(std::string& data) -> response_parse_result
 {
     if(data.empty())
     {
-        return response::parse_result::incomplete;
+        return response_parse_result::incomplete;
     }
 
-    if(m_parse_state == response::parse_state::start)
+    if(m_parse_state == response_parse_state::start)
     {
         auto result = parse_version(data);
-        if(result != response::parse_result::advance)
+        if(result != response_parse_result::advance)
         {
             return result;
         }
     }
 
-    if(m_parse_state == response::parse_state::parsed_version)
+    if(m_parse_state == response_parse_state::parsed_version)
     {
         auto result = parse_status_code(data);
-        if(result != response::parse_result::advance)
+        if(result != response_parse_result::advance)
         {
             return result;
         }
     }
 
-    if(m_parse_state == response::parse_state::parsed_status_code)
+    if(m_parse_state == response_parse_state::parsed_status_code)
     {
         auto result = parse_reason_phrase(data);
-        if(result != response::parse_result::advance)
+        if(result != response_parse_result::advance)
         {
             return result;
         }
     }
 
-    if(m_parse_state == response::parse_state::parsed_reason_phrase)
+    if(m_parse_state == response_parse_state::parsed_reason_phrase)
     {
         auto result = parse_headers(data);
-        if(result != response::parse_result::advance)
+        if(result != response_parse_result::advance)
         {
             return result;
         }
     }
 
-    if(    m_parse_state == response::parse_state::parsed_headers
+    if(    m_parse_state == response_parse_state::parsed_headers
         && m_body_type != body_type::no_body
     )
     {
         auto result = parse_body(data);
-        if(result != response::parse_result::advance)
+        if(result != response_parse_result::advance)
         {
             return result;
         }
     }
 
-    return response::parse_result::complete;
+    return response_parse_result::complete;
 }
 
-auto response::parse_version(std::string& data) -> response::parse_result
+template<std::size_t header_count>
+auto response<header_count>::parse_version(std::string& data) -> response_parse_result
 {
     auto result = parse_version_common(data, m_pos, m_version);
 
@@ -900,32 +912,33 @@ auto response::parse_version(std::string& data) -> response::parse_result
     {
 
         case parse_version_result::malformed:
-            return response::parse_result::http_version_malformed;
+            return response_parse_result::http_version_malformed;
         case parse_version_result::unknown:
-            return response::parse_result::http_version_unknown;
+            return response_parse_result::http_version_unknown;
         case parse_version_result::incomplete:
-            return response::parse_result::incomplete;
+            return response_parse_result::incomplete;
         case parse_version_result::advance:
         {
-            if(UNLIKELY(m_pos + 1 >= data.length()))
+            if(TURBO_UNLIKELY(m_pos + 1 >= data.length()))
             {
-                return response::parse_result::incomplete;
+                return response_parse_result::incomplete;
             }
             else
             {
-                ADVANCE_EXPECT(HTTP_SP, response::parse_result::http_version_malformed);
+                ADVANCE_EXPECT(HTTP_SP, response_parse_result::http_version_malformed);
                 ADVANCE();
-                m_parse_state = response::parse_state::parsed_version;
-                return response::parse_result::advance;
+                m_parse_state = response_parse_state::parsed_version;
+                return response_parse_result::advance;
             }
         }
     }
 
     // impossible gcc error
-    return response::parse_result::http_version_unknown;
+    return response_parse_result::http_version_unknown;
 }
 
-auto response::parse_status_code(std::string& data) -> response::parse_result
+template<std::size_t header_count>
+auto response<header_count>::parse_status_code(std::string& data) -> response_parse_result
 {
     size_t data_length = data.length();
     size_t required_bytes = m_pos + 3;
@@ -933,9 +946,9 @@ auto response::parse_status_code(std::string& data) -> response::parse_result
     /**
      * All status codes are 3 digits in length, plus the trailing HTTP_SP, "XXX "
      */
-    if(UNLIKELY(required_bytes > data_length))
+    if(TURBO_UNLIKELY(required_bytes > data_length))
     {
-        return response::parse_result::incomplete;
+        return response_parse_result::incomplete;
     }
 
     if(    !std::isdigit(data[m_pos])
@@ -943,25 +956,26 @@ auto response::parse_status_code(std::string& data) -> response::parse_result
         || !std::isdigit(data[m_pos + 2])
     )
     {
-        return response::parse_result::http_status_code_malformed;
+        return response_parse_result::http_status_code_malformed;
     }
 
     std::from_chars(&data[m_pos], &data[required_bytes], m_status_code, 10);
-    if(LIKELY(m_status_code != 0))
+    if(TURBO_LIKELY(m_status_code != 0))
     {
         m_pos += 3; // Advanced 3x past the status code.
-        EXPECT(HTTP_SP, response::parse_result::http_status_code_malformed);
+        EXPECT(HTTP_SP, response_parse_result::http_status_code_malformed);
         ADVANCE();
-        m_parse_state = response::parse_state::parsed_status_code;
-        return response::parse_result::advance;
+        m_parse_state = response_parse_state::parsed_status_code;
+        return response_parse_result::advance;
     }
     else
     {
-        return response::parse_result::http_status_code_malformed;
+        return response_parse_result::http_status_code_malformed;
     }
 }
 
-auto response::parse_reason_phrase(std::string& data) -> response::parse_result
+template<std::size_t header_count>
+auto response<header_count>::parse_reason_phrase(std::string& data) -> response_parse_result
 {
     // Since the reason phrases are not truely standardized, the parser just looks
     // for the \r\n that ends the line and sets the m_reason_phrase to the entire section.
@@ -969,23 +983,24 @@ auto response::parse_reason_phrase(std::string& data) -> response::parse_result
     // currently not handled by the parser and just looks for \r\n.
 
     size_t value_end = m_pos;
-    if(LIKELY(find_crlf(data, value_end)))
+    if(TURBO_LIKELY(find_crlf(data, value_end)))
     {
         // If found, value_end will be the byte before \r\n, so calculate the length + 1 for the string view.
         m_reason_phrase = std::string_view{&data[m_pos], value_end - m_pos + 1};
         m_pos = value_end + 3; // advance past the \r\n as well
-        m_parse_state = response::parse_state::parsed_reason_phrase;
-        return response::parse_result::advance;
+        m_parse_state = response_parse_state::parsed_reason_phrase;
+        return response_parse_result::advance;
     }
     else
     {
-        return response::parse_result::incomplete;
+        return response_parse_result::incomplete;
     }
 }
 
-auto response::parse_headers(std::string& data) -> response::parse_result
+template<std::size_t header_count>
+auto response<header_count>::parse_headers(std::string& data) -> response_parse_result
 {
-    return parse_headers_common<response::parse_state, response::parse_result>(
+    return parse_headers_common<response_parse_state, response_parse_result, header_count>(
         data,
         m_pos,
         m_header_count,
@@ -996,7 +1011,8 @@ auto response::parse_headers(std::string& data) -> response::parse_result
     );
 }
 
-auto response::parse_body(std::string& data) -> response::parse_result
+template<std::size_t header_count>
+auto response<header_count>::parse_body(std::string& data) -> response_parse_result
 {
     size_t data_length = data.length();
     switch(m_body_type)
@@ -1027,7 +1043,7 @@ auto response::parse_body(std::string& data) -> response::parse_result
 
                 if(!chunk_size_end_found)
                 {
-                    return response::parse_result::incomplete;
+                    return response_parse_result::incomplete;
                 }
 
                 size_t chunk_length{0};
@@ -1048,8 +1064,8 @@ auto response::parse_body(std::string& data) -> response::parse_result
                         m_content_length += chunk_length; // Keep track of the entire size though content length.
                         m_body.emplace(&data[m_body_start], m_content_length);
 
-                        ADVANCE_EXPECT(HTTP_CR, response::parse_result::chunk_malformed);
-                        ADVANCE_EXPECT(HTTP_LF, response::parse_result::chunk_malformed);
+                        ADVANCE_EXPECT(HTTP_CR, response_parse_result::chunk_malformed);
+                        ADVANCE_EXPECT(HTTP_LF, response_parse_result::chunk_malformed);
                         ADVANCE(); // This chunk parser expects to be on the first byte of the chunk
                     }
                 }
@@ -1059,16 +1075,16 @@ auto response::parse_body(std::string& data) -> response::parse_result
                     if(chunk_size_end + 3 <= data_length) // need \n\r\n
                     {
                         m_pos = chunk_size_end + 1; // strip the \n trailing chunk_size_end
-                        ADVANCE_EXPECT(HTTP_CR, response::parse_result::chunk_malformed);
-                        ADVANCE_EXPECT(HTTP_LF, response::parse_result::chunk_malformed);
-                        m_parse_state = response::parse_state::parsed_body;
+                        ADVANCE_EXPECT(HTTP_CR, response_parse_result::chunk_malformed);
+                        ADVANCE_EXPECT(HTTP_LF, response_parse_result::chunk_malformed);
+                        m_parse_state = response_parse_state::parsed_body;
                         break; // while(true)
                     }
                     else
                     {
                         // its possible to infer the last two bytes *should* be CR LF, but technically
                         // it is incomplete without them
-                        return response::parse_result::incomplete;
+                        return response_parse_result::incomplete;
                     }
                 }
             }
@@ -1079,11 +1095,11 @@ auto response::parse_body(std::string& data) -> response::parse_result
             if(m_pos + m_content_length >= data_length)
             {
                 m_body.emplace(&data[m_pos], m_content_length);
-                m_parse_state = response::parse_state::parsed_body;
+                m_parse_state = response_parse_state::parsed_body;
             }
             else
             {
-                return response::parse_result::incomplete;
+                return response_parse_result::incomplete;
             }
         }
             break;
@@ -1092,12 +1108,13 @@ auto response::parse_body(std::string& data) -> response::parse_result
             break;
     }
 
-    return response::parse_result::complete;
+    return response_parse_result::complete;
 }
 
-auto response::reset() -> void
+template<std::size_t header_count>
+auto response<header_count>::reset() -> void
 {
-    m_parse_state = response::parse_state::start;
+    m_parse_state = response_parse_state::start;
     m_pos = 0;
 
     //m_version{version::v1_1};
@@ -1113,7 +1130,8 @@ auto response::reset() -> void
     m_body = std::nullopt;
 }
 
-auto response::http_header(std::string_view name) const -> std::optional<std::string_view>
+template<std::size_t header_count>
+auto response<header_count>::http_header(std::string_view name) const -> std::optional<std::string_view>
 {
     for(size_t i = 0; i < m_header_count; ++i)
     {
@@ -1129,3 +1147,9 @@ auto response::http_header(std::string_view name) const -> std::optional<std::st
 
 } // namespace turbo::http
 
+#undef TURBO_UNLIKELY
+#undef TURBO_LIKELY
+
+#undef EXPECT
+#undef ADVANCE_EXPECT
+#undef ADVANCE
