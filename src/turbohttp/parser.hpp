@@ -17,31 +17,32 @@ enum class body_type
     content_length
 };
 
+enum class request_parse_result
+{
+    advance,
+    complete,
+    incomplete,
+    method_unknown,
+    http_version_malformed,
+    http_version_unknown,
+    maximum_headers_exceeded,
+    chunk_malformed
+};
+
+enum class request_parse_state
+{
+    start,
+    parsed_method,
+    parsed_uri,
+    parsed_version,
+    parsed_headers,
+    parsed_body
+};
+
+template<std::size_t header_count = 16>
 class request
 {
 public:
-    enum class parse_result
-    {
-        advance,
-        complete,
-        incomplete,
-        method_unknown,
-        http_version_malformed,
-        http_version_unknown,
-        maximum_headers_exceeded,
-        chunk_malformed
-    };
-
-    enum class parse_state
-    {
-        start,
-        parsed_method,
-        parsed_uri,
-        parsed_version,
-        parsed_headers,
-        parsed_body
-    };
-
     request() = default;
     ~request() = default;
 
@@ -66,14 +67,14 @@ public:
      * @param data The full HTTP request data.  If this is a chunked request, it will be mutated.
      * @return The current state of parsing the HTTP request data.
      */
-    auto parse(std::string& data) -> request::parse_result;
+    auto parse(std::string& data) -> request_parse_result;
 
 private:
-    auto parse_method(std::string& data) -> request::parse_result;
-    auto parse_uri(std::string& data) -> request::parse_result;
-    auto parse_version(std::string& data) -> request::parse_result;
-    auto parse_headers(std::string& data) -> request::parse_result;
-    auto parse_body(std::string& data) -> request::parse_result;
+    auto parse_method(std::string& data) -> request_parse_result;
+    auto parse_uri(std::string& data) -> request_parse_result;
+    auto parse_version(std::string& data) -> request_parse_result;
+    auto parse_headers(std::string& data) -> request_parse_result;
+    auto parse_body(std::string& data) -> request_parse_result;
 public:
 
     /**
@@ -84,7 +85,7 @@ public:
     /**
      * @return The current internal parse state (how far its gotten) for the current set of data.
      */
-    auto state() const -> request::parse_state { return m_parse_state; }
+    auto state() const -> request_parse_state { return m_parse_state; }
 
     /**
      * @return The parsed HTTP Method.  This value is only valid if the parser has successfully
@@ -138,7 +139,7 @@ public:
 
 private:
     /// How far in the parse state machine has this data gotten?
-    request::parse_state m_parse_state{request::parse_state::start};
+    request_parse_state m_parse_state{request_parse_state::start};
     /// The exact index of where the previous Parse() call was left off at.
     std::size_t m_pos{0};
 
@@ -156,7 +157,7 @@ private:
     /// The number of headers in the request.
     std::size_t m_header_count{0};
     /// The actual contents of the header values.
-    std::array<std::pair<std::string_view, std::string_view>, 64> m_headers{};
+    std::array<std::pair<std::string_view, std::string_view>, header_count> m_headers{};
 
     /// The type of body, if there is one.
     body_type m_body_type{body_type::no_body};
@@ -168,31 +169,32 @@ private:
     std::optional<std::string_view> m_body{};
 };
 
+enum class response_parse_result
+{
+    advance,
+    complete,
+    incomplete,
+    http_version_malformed,
+    http_version_unknown,
+    http_status_code_malformed,
+    maximum_headers_exceeded,
+    chunk_malformed
+};
+
+enum class response_parse_state
+{
+    start,
+    parsed_version,
+    parsed_status_code,
+    parsed_reason_phrase,
+    parsed_headers,
+    parsed_body
+};
+
+template<std::size_t header_count = 16>
 class response
 {
 public:
-    enum class parse_result
-    {
-        advance,
-        complete,
-        incomplete,
-        http_version_malformed,
-        http_version_unknown,
-        http_status_code_malformed,
-        maximum_headers_exceeded,
-        chunk_malformed
-    };
-
-    enum class parse_state
-    {
-        start,
-        parsed_version,
-        parsed_status_code,
-        parsed_reason_phrase,
-        parsed_headers,
-        parsed_body
-    };
-
     response() = default;
     ~response() = default;
 
@@ -201,13 +203,13 @@ public:
     auto operator=(const response&) -> response& = default;
     auto operator=(response&&) -> response& = default;
 
-    auto parse(std::string& data) -> response::parse_result;
+    auto parse(std::string& data) -> response_parse_result;
 private:
-    auto parse_version(std::string& data) -> response::parse_result;
-    auto parse_status_code(std::string& data) -> response::parse_result;
-    auto parse_reason_phrase(std::string& data) -> response::parse_result;
-    auto parse_headers(std::string& data) -> response::parse_result;
-    auto parse_body(std::string& data) -> response::parse_result;
+    auto parse_version(std::string& data) -> response_parse_result;
+    auto parse_status_code(std::string& data) -> response_parse_result;
+    auto parse_reason_phrase(std::string& data) -> response_parse_result;
+    auto parse_headers(std::string& data) -> response_parse_result;
+    auto parse_body(std::string& data) -> response_parse_result;
 public:
 
     /**
@@ -218,7 +220,7 @@ public:
     /**
      * @return The current internal parse state (how far its gotten) for the current set of data.
      */
-    auto state() const -> response::parse_state { return m_parse_state; }
+    auto state() const -> response_parse_state { return m_parse_state; }
 
     /**
      * @return Gets the HTTP Version of the response.
@@ -270,7 +272,7 @@ public:
 
 private:
     /// How far in the parse state machine has this data gotten?
-    response::parse_state m_parse_state{response::parse_state::start};
+    response_parse_state m_parse_state{response_parse_state::start};
     /// The exact index of where the previous Parse() call was left off at.
     std::size_t m_pos{0};
 
@@ -284,7 +286,7 @@ private:
     /// The number of headers in the response.
     std::size_t m_header_count{0};
     /// The actual contents of the header values.
-    std::array<std::pair<std::string_view, std::string_view>, 64> m_headers;
+    std::array<std::pair<std::string_view, std::string_view>, header_count> m_headers;
 
     /// The type of body, if there is one.
     body_type m_body_type{body_type::no_body};
@@ -297,3 +299,5 @@ private:
 };
 
 } // namespace turbo::http
+
+#include "turbohttp/parser.tcc"

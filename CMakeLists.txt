@@ -11,7 +11,7 @@ message("${PROJECT_NAME} TURBOHTTP_CODE_COVERAGE   = ${TURBOHTTP_CODE_COVERAGE}"
 
 set(LIBTURBOHTTP_SOURCE_FILES
     src/turbohttp/method.hpp
-    src/turbohttp/parser.hpp src/turbohttp/parser.cpp
+    src/turbohttp/parser.hpp src/turbohttp/parser.tcc
     src/turbohttp/turbohttp.hpp
     src/turbohttp/version.hpp
 )
