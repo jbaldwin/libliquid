@@ -1,4 +1,4 @@
-#include "Catch2.h"
+#include "catch.hpp"
 
 #ifdef __SSE4_2__
 #include <immintrin.h>

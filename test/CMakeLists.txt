@@ -1,51 +1,23 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.16)
 project(libliquid_test)
 
 set(LIBLIQUID_TEST_SOURCE_FILES
-    Catch2.h
     main.cpp
     TestParseRequest.cpp
     TestParseResponse.cpp
     TestSimd.cpp
 )
 
-add_executable(${PROJECT_NAME} ${LIBLIQUID_TEST_SOURCE_FILES})
+add_executable(${PROJECT_NAME} main.cpp ${LIBLIQUID_TEST_SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE liquid)
 
-target_compile_options(${PROJECT_NAME} PRIVATE
-    -Wall
-    -Wextra
-    -Weffc++
-    -Werror
-    -Wpedantic
-    -pedantic-errors
-)
-
-if(USE_SSE42)
+if(LIQUID_USE_SSE42)
     target_compile_options(${PROJECT_NAME} PRIVATE -msse4.2)
 endif()
 
-if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    message("${PROJECT_NAME} is building Debug")
-    target_compile_options(
-        ${PROJECT_NAME} PRIVATE
-        -O0
-        -g
-        -gdwarf-2
-    )
-    if(D_GLIBCXX_DEBUG)
-        message("${PROJECT_NAME} D_GLIBCXX_DEBUG is ON")
-        target_compile_options(${PROJECT_NAME} PRIVATE -D_GLIBCXX_DEBUG)
-    else()
-        message("${PROJECT_NAME} D_GLIBCXX_DEBUG is OFF")
-    endif()
-
-else() # "Release"
-    message("${PROJECT_NAME} is building Release")
-    target_compile_options(
-        ${PROJECT_NAME} PRIVATE
-        -O3
-        -g
-        -gdwarf-2
-    )
+if(LIQUID_CODE_COVERAGE)
+    target_compile_options(${PROJECT_NAME} PRIVATE --coverage)
+    target_link_libraries(${PROJECT_NAME} PRIVATE gcov)
 endif()
+
+add_test(NAME liquid_test COMMAND ${PROJECT_NAME})

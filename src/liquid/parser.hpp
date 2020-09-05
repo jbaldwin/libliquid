@@ -1,7 +1,7 @@
 #pragma once
 
-#include "liquid/Method.h"
-#include "liquid/Version.h"
+#include "liquid/method.hpp"
+#include "liquid/version.hpp"
 
 #include <string>
 #include <optional>
@@ -10,48 +10,45 @@
 namespace liquid
 {
 
-enum class RequestParseResult
+enum class body_type
 {
-    CONTINUE,
-    COMPLETE,
-    INCOMPLETE,
-    METHOD_UNKNOWN,
-    HTTP_VERSION_MALFORMED,
-    HTTP_VERSION_UNKNOWN,
-    TOO_MANY_HEADERS,
-    CHUNK_MALFORMED
+    no_body,
+    chunked,
+    content_length
 };
 
-enum class RequestParseState
-{
-    START,
-    PARSED_METHOD,
-    PARSED_URI,
-    PARSED_VERSION,
-    PARSED_HEADERS,
-    PARSED_BODY
-};
-
-enum class BodyType
-{
-    CHUNKED,
-    CONTENT_LENGTH,
-    NO_BODY
-};
-
-class Request
+class request
 {
 public:
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
-    Request() = default;
-#pragma GCC diagnostic pop
-    ~Request() = default;
+    enum class parse_result
+    {
+        advance,
+        complete,
+        incomplete,
+        method_unknown,
+        http_version_malformed,
+        http_version_unknown,
+        maximum_headers_exceeded,
+        chunk_malformed
+    };
 
-    Request(const Request&) = default;
-    Request(Request&&) = default;
-    auto operator=(const Request&) -> Request& = default;
-    auto operator=(Request&&) -> Request& = default;
+    enum class parse_state
+    {
+        start,
+        parsed_method,
+        parsed_url,
+        parsed_version,
+        parsed_headers,
+        parsed_body
+    };
+
+    request() = default;
+    ~request() = default;
+
+    request(const request&) = default;
+    request(request&&) = default;
+    auto operator=(const request&) -> request& = default;
+    auto operator=(request&&) -> request& = default;
 
     /**
      * A stateful parse function which will return the status of how far the parse
@@ -69,55 +66,55 @@ public:
      * @param data The full HTTP request data.  If this is a chunked request, it will be mutated.
      * @return The current state of parsing the HTTP request data.
      */
-    auto Parse(std::string& data) -> RequestParseResult;
+    auto parse(std::string& data) -> request::parse_result;
 
 private:
-    auto parseMethod(std::string& data) -> RequestParseResult;
-    auto parseUri(std::string& data) -> RequestParseResult;
-    auto parseVersion(std::string& data) -> RequestParseResult;
-    auto parseHeaders(std::string& data) -> RequestParseResult;
-    auto parseBody(std::string& data) -> RequestParseResult;
+    auto parse_method(std::string& data) -> request::parse_result;
+    auto parse_uri(std::string& data) -> request::parse_result;
+    auto parse_version(std::string& data) -> request::parse_result;
+    auto parse_headers(std::string& data) -> request::parse_result;
+    auto parse_body(std::string& data) -> request::parse_result;
 public:
 
     /**
      * Resets the parser to default constructed state to parse another request.
      */
-    auto Reset() -> void;
+    auto reset() -> void;
 
     /**
      * @return The current internal parse state (how far its gotten) for the current set of data.
      */
-    auto GetParseState() const -> RequestParseState;
+    auto state() const -> request::parse_state { return m_parse_state; }
 
     /**
      * @return The parsed HTTP Method.  This value is only valid if the parser has successfully
      *          passed the 'PARSED_METHOD' parse state.
      */
-    auto GetMethod() const -> Method;
+    auto http_method() const -> method { return m_method; }
 
     /**
      * @return The parsed URI.  This value is only valid if the parser has successfully
      *          passed the 'PARSED_URI' parse state.
      */
-    auto GetUri() const -> std::string_view;
+    auto http_uri() const -> std::string_view { return m_uri; };
 
     /**
      * @return The parsed HTTP Version.  This value is only valid if the parser has succesfully
      *          passed the 'PARSED_VERSION' parse state.
      */
-    auto GetVersion() const -> Version;
+    auto http_version() const -> version { return m_version; }
 
     /**
      * @return Gets the number of parsed headers.
      */
-    auto GetHeaderCount() const -> size_t;
+    auto http_header_count() const -> size_t { return m_header_count; }
 
     /**
      * Finds the first header given by name (case insensitive).
      * @param name Find this header's value.
      * @return The value if it was in the request, otherwise an empty optional.
      */
-    auto GetHeader(std::string_view name) const -> std::optional<std::string_view>;
+    auto http_header(std::string_view name) const -> std::optional<std::string_view>;
 
     /**
      * Iterates over each request header with the (name, value) pair as std::string_view arguments.
@@ -125,125 +122,130 @@ public:
      * @param functor Callback functor to be called on each header name, value pair.
      */
     template<typename Functor>
-    auto ForEachHeader(Functor&& functor) -> void;
+    auto http_header_for_each(Functor&& functor) -> void
+    {
+        for(size_t i = 0; i < m_header_count; ++i)
+        {
+            auto& [name, value] = m_headers[i];
+            functor(name, value);
+        }
+    }
 
     /**
      * @return Gets the request body if the request had one.
      */
-    auto GetBody() const -> const std::optional<std::string_view>&;
+    auto http_body() const -> const std::optional<std::string_view>& { return m_body; }
+
 private:
     /// How far in the parse state machine has this data gotten?
-    RequestParseState m_parse_state{RequestParseState::START};
+    request::parse_state m_parse_state{request::parse_state::start};
     /// The exact index of where the previous Parse() call was left off at.
-    size_t m_pos{0};
+    std::size_t m_pos{0};
 
     /// The parsed HTTP Method.
-    Method m_method{Method::GET};
+    method m_method{method::get};
 
     /// The starting position of the URI, saved during subsequent parses to calculate the full view.
-    size_t m_uri_start_pos{0};
+    std::size_t m_uri_start_pos{0};
     /// The parsed URI.
-    std::string_view m_uri;
+    std::string_view m_uri{};
 
     /// The parsed HTTP/X.Y version.
-    Version m_version{Version::V1_1};
+    version m_version{version::v1_1};
 
     /// The number of headers in the request.
-    size_t m_header_count{0};
+    std::size_t m_header_count{0};
     /// The actual contents of the header values.
-    std::array<std::pair<std::string_view, std::string_view>, 64> m_headers;
+    std::array<std::pair<std::string_view, std::string_view>, 64> m_headers{};
 
     /// The type of body, if there is one.
-    BodyType m_body_type{BodyType::NO_BODY};
+    body_type m_body_type{body_type::no_body};
     /// The Content-Length value if present.
-    size_t m_content_length;
+    std::size_t m_content_length{0};
     /// The start of the body (used for Transfer-Encoding: chunked)
-    size_t m_body_start;
+    std::size_t m_body_start{0};
     /// The request body contents if any.
-    std::optional<std::string_view> m_body;
+    std::optional<std::string_view> m_body{};
 };
 
-enum class ResponseParseResult
-{
-    CONTINUE,
-    COMPLETE,
-    INCOMPLETE,
-    HTTP_VERSION_MALFORMED,
-    HTTP_VERSION_UNKNOWN,
-    HTTP_STATUS_CODE_MALFORMED,
-    TOO_MANY_HEADERS,
-    CHUNK_MALFORMED
-};
-
-enum class ResponseParseState
-{
-    START,
-    PARSED_VERSION,
-    PARSED_STATUS_CODE,
-    PARSED_REASON_PHRASE,
-    PARSED_HEADERS,
-    PARSED_BODY
-};
-
-class Response
+class response
 {
 public:
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
-    Response() = default;
-#pragma GCC diagnostic pop
-    ~Response() = default;
+    enum class parse_result
+    {
+        advance,
+        complete,
+        incomplete,
+        http_version_malformed,
+        http_version_unknown,
+        http_status_code_malformed,
+        maximum_headers_exceeded,
+        chunk_malformed
+    };
 
-    Response(const Response&) = default;
-    Response(Response&&) = default;
-    auto operator=(const Response&) -> Response& = default;
-    auto operator=(Response&&) -> Response& = default;
+    enum class parse_state
+    {
+        start,
+        parsed_version,
+        parsed_status_code,
+        parsed_reason_phrase,
+        parsed_headers,
+        parsed_body
+    };
 
-    auto Parse(std::string& data) -> ResponseParseResult;
+    response() = default;
+    ~response() = default;
+
+    response(const response&) = default;
+    response(response&&) = default;
+    auto operator=(const response&) -> response& = default;
+    auto operator=(response&&) -> response& = default;
+
+    auto parse(std::string& data) -> response::parse_result;
 private:
-    auto parseVersion(std::string& data) -> ResponseParseResult;
-    auto parseStatusCode(std::string& data) -> ResponseParseResult;
-    auto parseReasonPhrase(std::string& data) -> ResponseParseResult;
-    auto parseHeaders(std::string& data) -> ResponseParseResult;
-    auto parseBody(std::string& data) -> ResponseParseResult;
+    auto parse_version(std::string& data) -> response::parse_result;
+    auto parse_status_code(std::string& data) -> response::parse_result;
+    auto parse_reason_phrase(std::string& data) -> response::parse_result;
+    auto parse_headers(std::string& data) -> response::parse_result;
+    auto parse_body(std::string& data) -> response::parse_result;
 public:
 
     /**
      * Resets the parser to default constructed state to parse another response.
      */
-    auto Reset() -> void;
+    auto reset() -> void;
 
     /**
      * @return The current internal parse state (how far its gotten) for the current set of data.
      */
-    auto GetParseState() const -> ResponseParseState;
+    auto state() const -> response::parse_state { return m_parse_state; }
 
     /**
      * @return Gets the HTTP Version of the response.
      */
-    auto GetVersion() const -> Version;
+    auto http_version() const -> version { return m_version; }
 
     /**
      * @return Gets the HTTP Status Code of the response.
      */
-    auto GetStatusCode() const -> uint64_t;
+    auto http_status_code() const -> uint64_t { return m_status_code; }
 
     /**
      * @return Gets the HTTP Reason Phrase of the response.
      */
-    auto GetReasonPhrase() const -> std::string_view;
+    auto http_reason_phrase() const -> std::string_view { return m_reason_phrase; }
 
     /**
      * @return Gets the number of parsed headers.
      */
-    auto GetHeaderCount() const -> size_t;
+    auto http_header_count() const -> std::size_t { return m_header_count; }
 
     /**
      * Finds the first header given by name (case insensitive).
      * @param name Find this header's value.
      * @return The value if it was in the response, otherwise an empty optional.
      */
-    auto GetHeader(std::string_view name) const -> std::optional<std::string_view>;
+    auto http_header(std::string_view name) const -> std::optional<std::string_view>;
 
     /**
      * Iterates over each response header with the (name, value) pair as std::string_view arguments.
@@ -251,42 +253,47 @@ public:
      * @param functor Callback functor to be called on each header name, value pair.
      */
     template<typename Functor>
-    auto ForEachHeader(Functor&& functor) -> void;
+    auto http_header_for_each(Functor&& functor) -> void
+    {
+        for(size_t i = 0; i < m_header_count; ++i)
+        {
+            auto& [name, value] = m_headers[i];
+            functor(name, value);
+        }
+    }
 
     /**
      * @return Gets the response body if the response had one.
      */
-    auto GetBody() const -> const std::optional<std::string_view>&;
+    auto http_body() const -> const std::optional<std::string_view>& { return m_body; }
 
 
 private:
     /// How far in the parse state machine has this data gotten?
-    ResponseParseState m_parse_state{ResponseParseState::START};
+    response::parse_state m_parse_state{response::parse_state::start};
     /// The exact index of where the previous Parse() call was left off at.
-    size_t m_pos{0};
+    std::size_t m_pos{0};
 
     /// The parsed HTTP/X.Y version.
-    Version m_version{Version::V1_1};
-    /// The HTTP Response status code.
+    version m_version{version::v1_1};
+    /// The HTTP response status code.
     uint64_t m_status_code{0};
     /// The HTTP Reason Phrase.
-    std::string_view m_reason_phrase;
+    std::string_view m_reason_phrase{};
 
     /// The number of headers in the response.
-    size_t m_header_count{0};
+    std::size_t m_header_count{0};
     /// The actual contents of the header values.
     std::array<std::pair<std::string_view, std::string_view>, 64> m_headers;
 
     /// The type of body, if there is one.
-    BodyType m_body_type{BodyType::NO_BODY};
+    body_type m_body_type{body_type::no_body};
     /// The Content-Length value if present.
-    size_t m_content_length;
+    std::size_t m_content_length{0};
     /// The start of the body (used for Transfer-Encoding: chunked)
-    size_t m_body_start;
+    std::size_t m_body_start{0};
     /// The response body contents if any.
-    std::optional<std::string_view> m_body;
+    std::optional<std::string_view> m_body{};
 };
 
 } // namespace liquid
-
-#include "liquid/Parser.tcc"

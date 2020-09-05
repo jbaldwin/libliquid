@@ -34,5 +34,7 @@
 # Project
 /.idea/
 /cmake-build-debug/
+/.vscode/
 /Debug/
+/RelWithDebInfo/
 /Release/

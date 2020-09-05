@@ -1,4 +1,4 @@
-#include <liquid/Liquid.h>
+#include <liquid/liquid.hpp>
 
 #include <iostream>
 #include <chrono>
@@ -35,11 +35,11 @@ int main(int argc, char* argv[])
     constexpr size_t iterations = 1'000'000;
 
     auto start = std::chrono::steady_clock::now();
-    liquid::Request request{};
+    liquid::request request{};
     for(size_t i = 0; i < iterations; ++i)
     {
-        request.Reset();
-        request.Parse(buffer);
+        request.reset();
+        request.parse(buffer);
     }
     auto end = std::chrono::steady_clock::now();
 
@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
     std::cout << "Total running time in ms: " << total_ms  << "\n";
 
     double requests_per_second = ((double)iterations) / total_ms * 1000;
-    std::cout << "Requests/sec: " << (uint64_t)requests_per_second << "\n";
+    std::cout << "requests/sec: " << (uint64_t)requests_per_second << "\n";
     std::cout << "MegaBytes per second: " << (buffer.length() * requests_per_second) / 1024 / 1024 << "\n";
 
     return 0;
