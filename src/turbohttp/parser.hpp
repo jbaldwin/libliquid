@@ -36,7 +36,7 @@ public:
     {
         start,
         parsed_method,
-        parsed_url,
+        parsed_uri,
         parsed_version,
         parsed_headers,
         parsed_body

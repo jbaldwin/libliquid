@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
         "Connection: keep-alive\r\n"
         "Cookie: wp_ozh_wsa_visits=2; wp_ozh_wsa_visit_lasttime=xxxxxxxxxx; __utma=xxxxxxxxx.xxxxxxxxxx.xxxxxxxxxx.xxxxxxxxxx.xxxxxxxxxx.x; __utmz=xxxxxxxxx.xxxxxxxxxx.x.x.utmccn=(referral)|utmcsr=reader.livedoor.com|utmcct=/reader/|utmcmd=referral\r\n"
         "\r\n";
-    constexpr size_t iterations = 1'000'000;
+    constexpr size_t iterations = 10'000'000;
 
     auto start = std::chrono::steady_clock::now();
     turbo::http::request request{};

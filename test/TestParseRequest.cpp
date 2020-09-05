@@ -266,7 +266,7 @@ SCENARIO("REQUEST:Parsing a complete URI")
             {
                 REQUIRE(result == request::parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_url);
+                REQUIRE(request.state() == request::parse_state::parsed_uri);
                 REQUIRE(request.http_uri() == "/derp.html");
             }
         }
@@ -311,7 +311,7 @@ SCENARIO("REQUEST:Parsing an incomplete URI")
             {
                 REQUIRE(result == request::parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_url);
+                REQUIRE(request.state() == request::parse_state::parsed_uri);
                 REQUIRE(request.http_uri() == "/derp.html?flerpity=merpity");
             }
         }
@@ -354,7 +354,7 @@ SCENARIO("REQUEST:Parsing an incomplete HTTP Version")
             {
                 REQUIRE(result == request::parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_url);
+                REQUIRE(request.state() == request::parse_state::parsed_uri);
                 REQUIRE(request.http_uri() == "/derp.html");
             }
         }
@@ -367,7 +367,7 @@ SCENARIO("REQUEST:Parsing an incomplete HTTP Version")
             {
                 REQUIRE(result == request::parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_url);
+                REQUIRE(request.state() == request::parse_state::parsed_uri);
                 REQUIRE(request.http_uri() == "/derp.html");
             }
         }
@@ -380,7 +380,7 @@ SCENARIO("REQUEST:Parsing an incomplete HTTP Version")
             {
                 REQUIRE(result == request::parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_url);
+                REQUIRE(request.state() == request::parse_state::parsed_uri);
                 REQUIRE(request.http_uri() == "/derp.html");
             }
         }
@@ -393,7 +393,7 @@ SCENARIO("REQUEST:Parsing an incomplete HTTP Version")
             {
                 REQUIRE(result == request::parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_url);
+                REQUIRE(request.state() == request::parse_state::parsed_uri);
                 REQUIRE(request.http_uri() == "/derp.html");
             }
         }
@@ -406,7 +406,7 @@ SCENARIO("REQUEST:Parsing an incomplete HTTP Version")
             {
                 REQUIRE(result == request::parse_result::incomplete);
                 REQUIRE(request.http_method() == method::get);
-                REQUIRE(request.state() == request::parse_state::parsed_url);
+                REQUIRE(request.state() == request::parse_state::parsed_uri);
                 REQUIRE(request.http_uri() == "/derp.html");
             }
         }
