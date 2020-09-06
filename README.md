@@ -12,14 +12,15 @@ libturbohttp - C++17 HTTP/1.1 Request and Response stateful parser.
 [language]: https://en.wikipedia.org/wiki/C%2B%2B17
 [license]: https://en.wikipedia.org/wiki/Apache_License
 
-**libturbohttp** is a C++17 HTTP/1.1 Request and Response stateful parser.  The intended purpose of this library is to provide a high quality and extremely faster stateful HTTP/1.1 parser with modern C++ coding standards.
+**libturbohttp** is a C++17 HTTP/1.1 Request and Response stateful parser with zero memory allocations.  The intended purpose of this library is to provide a high quality and extremely fast stateful HTTP/1.1 parser with modern C++ coding standards.
 
 **libturbohttp** is licensed under the Apache 2.0 license.
 
 # Overview #
-* C++17 API
-* Stateful parser -- never re-parse partial http requests or responses.
-* SIMD support, see TURBOHTTP_USE_SSE42 CMake option.
+* Modern C++17 API
+* Stateful parser, continue parsing where the previous call left off at when partial requests and responses are provided.
+* Zero allocation parsing, The request and response objects can be created on the stack and do not allocate any memory when parsing.
+* Custom maximum number of headers for request and response objects, default is 16.
 
 # Usage #
 TODO

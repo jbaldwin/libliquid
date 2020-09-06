@@ -3,17 +3,12 @@ project(libturbohttp_test)
 
 set(LIBTURBOHTTP_TEST_SOURCE_FILES
     main.cpp
-    TestParseRequest.cpp
-    TestParseResponse.cpp
-    TestSimd.cpp
+    test_parse_request.cpp
+    test_parse_response.cpp
 )
 
 add_executable(${PROJECT_NAME} main.cpp ${LIBTURBOHTTP_TEST_SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE turbohttp)
-
-if(TURBOHTTP_USE_SSE42)
-    target_compile_options(${PROJECT_NAME} PRIVATE -msse4.2)
-endif()
 
 if(TURBOHTTP_CODE_COVERAGE)
     target_compile_options(${PROJECT_NAME} PRIVATE --coverage)
