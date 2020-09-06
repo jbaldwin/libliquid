@@ -7,6 +7,11 @@
 #include <optional>
 #include <array>
 
+// The cmake build system will define this and allows overriding.
+#ifndef TURBOHTTP_HEADER_COUNT
+#define TURBOHTTP_HEADER_COUNT 16
+#endif
+
 namespace turbo::http
 {
 
@@ -19,27 +24,41 @@ enum class body_type
 
 enum class request_parse_result
 {
+    /// Go to the next stage of parsing.
     advance,
+    /// Parsing this request is completed, all fields are appropriately set.
     complete,
+    /// More data is required to complete parsing this request.
     incomplete,
+    /// The method in the request is unknown, error parse result.
     method_unknown,
+    /// The http version in the request is malformed, error parse result.
     http_version_malformed,
+    /// The http version is unknown or unsupported, error parse result.
     http_version_unknown,
+    /// The maximum number of headers has been exceeded, error parse result.
     maximum_headers_exceeded,
+    /// A malformed chunk was encountered, error parse result.
     chunk_malformed
 };
 
 enum class request_parse_state
 {
+    /// Parsing will start from the beginning of the request.
     start,
+    /// The http method has been parsed.
     parsed_method,
+    /// The http uri has been parsed.
     parsed_uri,
+    /// The http version has been parsed.
     parsed_version,
+    /// The http headers have been parsed.
     parsed_headers,
+    /// The http body (if present) has been parsed.
     parsed_body
 };
 
-template<std::size_t header_count = 16>
+template<std::size_t header_count = TURBOHTTP_HEADER_COUNT>
 class request
 {
 public:
@@ -191,7 +210,7 @@ enum class response_parse_state
     parsed_body
 };
 
-template<std::size_t header_count = 16>
+template<std::size_t header_count = TURBOHTTP_HEADER_COUNT>
 class response
 {
 public:
@@ -301,3 +320,5 @@ private:
 } // namespace turbo::http
 
 #include "turbohttp/parser.tcc"
+
+#undef TURBOHTTP_HEADER_COUNT

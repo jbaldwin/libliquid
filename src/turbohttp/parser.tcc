@@ -16,9 +16,9 @@ static constexpr char HTTP_CR = '\r';
 static constexpr char HTTP_LF = '\n';
 static constexpr char HTTP_HTAB = '\t';
 
-#define EXPECT(C, E) { if(data[m_pos] != C) { return E; } }
-#define ADVANCE_EXPECT(C, E) { if(data[++m_pos] != C) { return E; }}
-#define ADVANCE() { ++m_pos; }
+#define EXPECT(C, E) do { if(data[m_pos] != C) { return E; } } while(0)
+#define ADVANCE_EXPECT(C, E) do { if(data[++m_pos] != C) { return E; }} while(0)
+#define ADVANCE() do { ++m_pos; } while(0)
 
 static constexpr int TOLOWER_TABLE_ADD[] = {
     0,
@@ -191,11 +191,11 @@ static auto parse_version_common(
 template<typename parse_state, typename parse_result, std::size_t header_count>
 static auto parse_headers_common(
     std::string& data,
-    size_t& m_pos,
-    size_t& m_header_count,
+    std::size_t& m_pos,
+    std::size_t& m_header_count,
     std::array<std::pair<std::string_view, std::string_view>, header_count>& m_headers,
     body_type& m_body_type,
-    size_t& m_content_length,
+    std::size_t& m_content_length,
     parse_state& m_parse_state
 ) -> parse_result
 {
@@ -342,6 +342,114 @@ static auto parse_headers_common(
     }
 
     return parse_result::advance;
+}
+
+template<typename parse_state, typename parse_result>
+static auto parse_body_common(
+    std::string& data,
+    parse_state& m_parse_state,
+    std::size_t& m_pos,
+    body_type& m_body_type,
+    std::size_t& m_body_start,
+    std::size_t& m_content_length,
+    std::optional<std::string_view>& m_body) -> parse_result
+{
+    size_t data_length = data.length();
+    switch(m_body_type)
+    {
+        case body_type::chunked:
+        {
+            // First time through record the start of the body for the full chunked body size.
+            if(!m_body.has_value())
+            {
+                m_body_start = m_pos;
+                m_content_length = 0; // leverage this for the decoded length
+                m_body.emplace(&data[m_pos], 0);
+            }
+
+            while(true)
+            {
+                size_t chunk_size_end = m_pos + 1;
+                bool chunk_size_end_found = false;
+                while(chunk_size_end + 1 < data_length)
+                {
+                    if(data[chunk_size_end] == HTTP_CR && data[chunk_size_end + 1] == HTTP_LF)
+                    {
+                        chunk_size_end_found = true;
+                        break; // while(chunk_size_end + 1 < data_length)
+                    }
+                    ++chunk_size_end;
+                }
+
+                if(!chunk_size_end_found)
+                {
+                    return parse_result::incomplete;
+                }
+
+                // Chunk lengths are on base 16 hex.
+                size_t chunk_length{0};
+                std::from_chars(&data[m_pos], &data[chunk_size_end], chunk_length, 16);
+
+                if(chunk_length != 0)
+                {
+                    // There is a valid chunk with some data, parse over it!
+                    // (note: chunk_size_end includes 1 byte for \r\n already
+                    m_pos = chunk_size_end + 1 + chunk_length;
+                    if(m_pos + 2 < data_length)
+                    {
+                        // move the data into the correct position. this is major YIKES!
+                        char* data_start = data.data() + (m_body_start + m_content_length);
+                        char* chunk_start = data.data() + (chunk_size_end + 2);
+
+                        std::memmove(data_start, chunk_start, chunk_length);
+                        m_content_length += chunk_length; // Keep track of the entire size though content length.
+                        m_body.emplace(&data[m_body_start], m_content_length);
+
+                        ADVANCE_EXPECT(HTTP_CR, parse_result::chunk_malformed);
+                        ADVANCE_EXPECT(HTTP_LF, parse_result::chunk_malformed);
+                        ADVANCE(); // This chunk parser expects to be on the first byte of the chunk
+                    }
+                }
+                else
+                {
+                    // If the chunk length is zero, then ADVANCE_EXPECT the final \r\n and record the body.
+                    if(chunk_size_end + 3 <= data_length) // need \n\r\n
+                    {
+                        m_pos = chunk_size_end + 1; // strip the \n trailing chunk_size_end
+                        ADVANCE_EXPECT(HTTP_CR, parse_result::chunk_malformed);
+                        ADVANCE_EXPECT(HTTP_LF, parse_result::chunk_malformed);
+                        m_parse_state = parse_state::parsed_body;
+                        break; // while(true)
+                    }
+                    else
+                    {
+                        // its possible to infer the last two bytes *should* be CR LF, but technically
+                        // it is incomplete without them
+                        return parse_result::incomplete;
+                    }
+                }
+            }
+        }
+            break;
+        case body_type::content_length:
+        {
+            if(m_pos + m_content_length >= data_length)
+            {
+                m_body.emplace(&data[m_pos], m_content_length);
+                m_parse_state = parse_state::parsed_body;
+            }
+            else
+            {
+                return parse_result::incomplete;
+            }
+        }
+            break;
+        case body_type::no_body:
+            // nothing to do
+            break;
+    }
+
+    return parse_result::complete;
 }
 
 template<std::size_t header_count>
@@ -716,101 +824,15 @@ auto request<header_count>::parse_headers(std::string& data) -> request_parse_re
 template<std::size_t header_count>
 auto request<header_count>::parse_body(std::string& data) -> request_parse_result
 {
-    size_t data_length = data.length();
-    switch(m_body_type)
-    {
-        case body_type::chunked:
-        {
-            // First time through record the start of the body for the full chunked body size.
-            if(!m_body.has_value())
-            {
-                m_body_start = m_pos;
-                m_content_length = 0; // leverage this for the decoded length
-                m_body.emplace(&data[m_pos], 0);
-            }
-
-            while(true)
-            {
-                size_t chunk_size_end = m_pos + 1;
-                bool chunk_size_end_found = false;
-                while(chunk_size_end + 1 < data_length)
-                {
-                    if(data[chunk_size_end] == HTTP_CR && data[chunk_size_end + 1] == HTTP_LF)
-                    {
-                        chunk_size_end_found = true;
-                        break; // while(chunk_size_end + 1 < data_length)
-                    }
-                    ++chunk_size_end;
-                }
-
-                if(!chunk_size_end_found)
-                {
-                    return request_parse_result::incomplete;
-                }
-
-                size_t chunk_length{0};
-                std::from_chars(&data[m_pos], &data[chunk_size_end], chunk_length, 16);
-
-                if(chunk_length != 0)
-                {
-                    // There is a valid chunk with some data, parse over it!
-                    // (note: chunk_size_end includes 1 byte for \r\n already
-                    m_pos = chunk_size_end + 1 + chunk_length;
-                    if(m_pos + 2 < data_length)
-                    {
-                        // move the data into the correct position. this is major YIKES!
-                        char* data_start = data.data() + (m_body_start + m_content_length);
-                        char* chunk_start = data.data() + (chunk_size_end + 2);
-
-                        std::memmove(data_start, chunk_start, chunk_length);
-                        m_content_length += chunk_length; // Keep track of the entire size though content length.
-                        m_body.emplace(&data[m_body_start], m_content_length);
-
-                        ADVANCE_EXPECT(HTTP_CR, request_parse_result::chunk_malformed);
-                        ADVANCE_EXPECT(HTTP_LF, request_parse_result::chunk_malformed);
-                        ADVANCE(); // This chunk parser expects to be on the first byte of the chunk
-                    }
-                }
-                else
-                {
-                    // If the chunk length is zero, then ADVANCE_EXPECT the final \r\n and record the body.
-                    if(chunk_size_end + 3 <= data_length) // need \n\r\n
-                    {
-                        m_pos = chunk_size_end + 1; // strip the \n trailing chunk_size_end
-                        ADVANCE_EXPECT(HTTP_CR, request_parse_result::chunk_malformed);
-                        ADVANCE_EXPECT(HTTP_LF, request_parse_result::chunk_malformed);
-                        m_parse_state = request_parse_state::parsed_body;
-                        break; // while(true)
-                    }
-                    else
-                    {
-                        // its possible to infer the last two bytes *should* be CR LF, but technically
-                        // it is incomplete without them
-                        return request_parse_result::incomplete;
-                    }
-                }
-            }
-        }
-            break;
-        case body_type::content_length:
-        {
-            if(m_pos + m_content_length >= data_length)
-            {
-                m_body.emplace(&data[m_pos], m_content_length);
-                m_parse_state = request_parse_state::parsed_body;
-            }
-            else
-            {
-                return request_parse_result::incomplete;
-            }
-        }
-            break;
-        case body_type::no_body:
-            // nothing to do
-            break;
-    }
-
-    return request_parse_result::advance;
+    return parse_body_common<request_parse_state, request_parse_result>(
+        data,
+        m_parse_state,
+        m_pos,
+        m_body_type,
+        m_body_start,
+        m_content_length,
+        m_body
+    );
 }
 
 template<std::size_t header_count>
@@ -1014,101 +1036,15 @@ auto response<header_count>::parse_headers(std::string& data) -> response_parse_
 template<std::size_t header_count>
 auto response<header_count>::parse_body(std::string& data) -> response_parse_result
 {
-    size_t data_length = data.length();
-    switch(m_body_type)
-    {
-        case body_type::chunked:
-        {
-            // First time through record the start of the body for the full chunked body size.
-            if(!m_body.has_value())
-            {
-                m_body_start = m_pos;
-                m_content_length = 0; // leverage this for the decoded length
-                m_body.emplace(&data[m_pos], 0);
-            }
-
-            while(true)
-            {
-                size_t chunk_size_end = m_pos + 1;
-                bool chunk_size_end_found = false;
-                while(chunk_size_end + 1 < data_length)
-                {
-                    if(data[chunk_size_end] == HTTP_CR && data[chunk_size_end + 1] == HTTP_LF)
-                    {
-                        chunk_size_end_found = true;
-                        break; // while(chunk_size_end + 1 < data_length)
-                    }
-                    ++chunk_size_end;
-                }
-
-                if(!chunk_size_end_found)
-                {
-                    return response_parse_result::incomplete;
-                }
-
-                size_t chunk_length{0};
-                std::from_chars(&data[m_pos], &data[chunk_size_end], chunk_length, 16);
-
-                if(chunk_length != 0)
-                {
-                    // There is a valid chunk with some data, parse over it!
-                    // (note: chunk_size_end includes 1 byte for \r\n already
-                    m_pos = chunk_size_end + 1 + chunk_length;
-                    if(m_pos + 2 < data_length)
-                    {
-                        // move the data into the correct position. this is major YIKES!
-                        char* data_start = data.data() + (m_body_start + m_content_length);
-                        char* chunk_start = data.data() + (chunk_size_end + 2);
-
-                        std::memmove(data_start, chunk_start, chunk_length);
-                        m_content_length += chunk_length; // Keep track of the entire size though content length.
-                        m_body.emplace(&data[m_body_start], m_content_length);
-
-                        ADVANCE_EXPECT(HTTP_CR, response_parse_result::chunk_malformed);
-                        ADVANCE_EXPECT(HTTP_LF, response_parse_result::chunk_malformed);
-                        ADVANCE(); // This chunk parser expects to be on the first byte of the chunk
-                    }
-                }
-                else
-                {
-                    // If the chunk length is zero, then ADVANCE_EXPECT the final \r\n and record the body.
-                    if(chunk_size_end + 3 <= data_length) // need \n\r\n
-                    {
-                        m_pos = chunk_size_end + 1; // strip the \n trailing chunk_size_end
-                        ADVANCE_EXPECT(HTTP_CR, response_parse_result::chunk_malformed);
-                        ADVANCE_EXPECT(HTTP_LF, response_parse_result::chunk_malformed);
-                        m_parse_state = response_parse_state::parsed_body;
-                        break; // while(true)
-                    }
-                    else
-                    {
-                        // its possible to infer the last two bytes *should* be CR LF, but technically
-                        // it is incomplete without them
-                        return response_parse_result::incomplete;
-                    }
-                }
-            }
-        }
-            break;
-        case body_type::content_length:
-        {
-            if(m_pos + m_content_length >= data_length)
-            {
-                m_body.emplace(&data[m_pos], m_content_length);
-                m_parse_state = response_parse_state::parsed_body;
-            }
-            else
-            {
-                return response_parse_result::incomplete;
-            }
-        }
-            break;
-        case body_type::no_body:
-            // nothing to do
-            break;
-    }
-
-    return response_parse_result::complete;
+    return parse_body_common<response_parse_state, response_parse_result>(
+        data,
+        m_parse_state,
+        m_pos,
+        m_body_type,
+        m_body_start,
+        m_content_length,
+        m_body
+    );
 }
 
 template<std::size_t header_count>
