@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 project(turbohttp CXX)
 
-option(TURBOHTTP_BUILD_TESTS   "Build the tests, Default=ON." ON)
-option(TURBOHTTP_CODE_COVERAGE "Enable code coverage, tests must also be enabled, Default=OFF" OFF)
+option(TURBOHTTP_BUILD_EXAMPLES "Build the examples, Default=ON." ON)
+option(TURBOHTTP_BUILD_TESTS    "Build the tests, Default=ON." ON)
+option(TURBOHTTP_CODE_COVERAGE  "Enable code coverage, tests must also be enabled, Default=OFF" OFF)
 
 if(NOT DEFINED TURBOHTTP_HEADER_COUNT)
     set(
@@ -13,8 +14,10 @@ if(NOT DEFINED TURBOHTTP_HEADER_COUNT)
     )
 endif()
 
-message("${PROJECT_NAME} TURBOHTTP_BUILD_TESTS     = ${TURBOHTTP_BUILD_TESTS}")
-message("${PROJECT_NAME} TURBOHTTP_CODE_COVERAGE   = ${TURBOHTTP_CODE_COVERAGE}")
+message("${PROJECT_NAME} TURBOHTTP_BUILD_EXAMPLES   = ${TURBOHTTP_BUILD_EXAMPLES}")
+message("${PROJECT_NAME} TURBOHTTP_BUILD_TESTS      = ${TURBOHTTP_BUILD_TESTS}")
+message("${PROJECT_NAME} TURBOHTTP_CODE_COVERAGE    = ${TURBOHTTP_CODE_COVERAGE}")
+message("${PROJECT_NAME} TURBOHTTP_HEADER_COUNT     = ${TURBOHTTP_HEADER_COUNT}")
 
 set(LIBTURBOHTTP_SOURCE_FILES
     src/turbohttp/method.hpp
@@ -46,6 +49,10 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     )
 endif()
 
+if(TURBOHTTP_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
+
 if(TURBOHTTP_BUILD_TESTS)
     if(TURBOHTTP_CODE_COVERAGE)
         target_compile_options(${PROJECT_NAME} PRIVATE --coverage)
@@ -54,5 +61,4 @@ if(TURBOHTTP_BUILD_TESTS)
 
     enable_testing()
     add_subdirectory(test)
-    add_subdirectory(perf)
 endif()
