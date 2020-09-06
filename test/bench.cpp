@@ -1,12 +1,14 @@
+#define CATCH_CONFIG_MAIN
+#include "catch.hpp"
+#include <turbohttp/turbohttp.hpp>
+
 #include <turbohttp/turbohttp.hpp>
 
 #include <iostream>
 #include <chrono>
 
-int main(int argc, char* argv[])
+TEST_CASE("Benchmark")
 {
-    (void)argc;
-    (void)argv;
 
     // theres no transfer encoding so this is safe to re-use as input
     //std::string buffer =
@@ -51,5 +53,5 @@ int main(int argc, char* argv[])
     std::cout << "requests/sec: " << (uint64_t)requests_per_second << "\n";
     std::cout << "MegaBytes per second: " << (buffer.length() * requests_per_second) / 1024 / 1024 << "\n";
 
-    return 0;
+    REQUIRE(true);
 }
