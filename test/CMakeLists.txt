@@ -4,7 +4,6 @@ cmake_minimum_required(VERSION 3.16)
 project(libturbohttp_test)
 
 set(LIBTURBOHTTP_TEST_SOURCE_FILES
-    main.cpp
     test_parse_request.cpp
     test_parse_response.cpp
 )

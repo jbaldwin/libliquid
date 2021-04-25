@@ -6,6 +6,7 @@
 #include <string>
 #include <optional>
 #include <array>
+#include <span>
 
 // The cmake build system will define this and allows overriding.
 #ifndef TURBOHTTP_HEADER_COUNT
@@ -88,12 +89,14 @@ public:
      */
     auto parse(std::string& data) -> request_parse_result;
 
+    auto parse(std::span<char>& data) -> request_parse_result;
+
 private:
-    auto parse_method(std::string& data) -> request_parse_result;
-    auto parse_uri(std::string& data) -> request_parse_result;
-    auto parse_version(std::string& data) -> request_parse_result;
-    auto parse_headers(std::string& data) -> request_parse_result;
-    auto parse_body(std::string& data) -> request_parse_result;
+    auto parse_method(std::span<char>& data) -> request_parse_result;
+    auto parse_uri(std::span<char>& data) -> request_parse_result;
+    auto parse_version(std::span<char>& data) -> request_parse_result;
+    auto parse_headers(std::span<char>& data) -> request_parse_result;
+    auto parse_body(std::span<char>& data) -> request_parse_result;
 public:
 
     /**
@@ -223,12 +226,13 @@ public:
     auto operator=(response&&) -> response& = default;
 
     auto parse(std::string& data) -> response_parse_result;
+    auto parse(std::span<char>& data) -> response_parse_result;
 private:
-    auto parse_version(std::string& data) -> response_parse_result;
-    auto parse_status_code(std::string& data) -> response_parse_result;
-    auto parse_reason_phrase(std::string& data) -> response_parse_result;
-    auto parse_headers(std::string& data) -> response_parse_result;
-    auto parse_body(std::string& data) -> response_parse_result;
+    auto parse_version(std::span<char>& data) -> response_parse_result;
+    auto parse_status_code(std::span<char>& data) -> response_parse_result;
+    auto parse_reason_phrase(std::span<char>& data) -> response_parse_result;
+    auto parse_headers(std::span<char>& data) -> response_parse_result;
+    auto parse_body(std::span<char>& data) -> response_parse_result;
 public:
 
     /**
