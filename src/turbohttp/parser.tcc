@@ -122,7 +122,7 @@ static auto is_http_ws(char c) -> bool
  * @return True if \r\n was found, otherwise false.
  */
 static inline auto find_crlf(
-    std::string& data,
+    std::string_view data,
     size_t& index
 ) -> bool
 {
@@ -152,13 +152,13 @@ enum class parse_version_result
 };
 
 static auto parse_version_common(
-    std::string& data,
+    std::span<char>& data,
     std::size_t& m_pos,
     version& m_version
 
 ) -> parse_version_result
 {
-    size_t data_length = data.length();
+    size_t data_length = data.size();
     if(m_pos + 7 < data_length)
     {
         EXPECT('H', parse_version_result::malformed);
@@ -190,7 +190,7 @@ static auto parse_version_common(
 
 template<typename parse_state, typename parse_result, std::size_t header_count>
 static auto parse_headers_common(
-    std::string& data,
+    std::span<char>& data,
     std::size_t& m_pos,
     std::size_t& m_header_count,
     std::array<std::pair<std::string_view, std::string_view>, header_count>& m_headers,
@@ -199,7 +199,7 @@ static auto parse_headers_common(
     parse_state& m_parse_state
 ) -> parse_result
 {
-    size_t data_length = data.length();
+    size_t data_length = data.size();
     // missing empty line or headers
     if(data_length == m_pos)
     {
@@ -278,7 +278,7 @@ static auto parse_headers_common(
 
         // The parser has found the name of the header, now parse for the value.
         size_t value_end = value_start;
-        if(!find_crlf(data, value_end))
+        if(!find_crlf(std::string_view{data.data(), data.size()}, value_end))
         {
             return parse_result::incomplete;
         }
@@ -346,7 +346,7 @@ static auto parse_headers_common(
 
 template<typename parse_state, typename parse_result>
 static auto parse_body_common(
-    std::string& data,
+    std::span<char>& data,
     parse_state& m_parse_state,
     std::size_t& m_pos,
     body_type& m_body_type,
@@ -354,7 +354,7 @@ static auto parse_body_common(
     std::size_t& m_content_length,
     std::optional<std::string_view>& m_body) -> parse_result
 {
-    size_t data_length = data.length();
+    size_t data_length = data.size();
     switch(m_body_type)
     {
         case body_type::chunked:
@@ -455,6 +455,13 @@ static auto parse_body_common(
 template<std::size_t header_count>
 auto request<header_count>::parse(std::string& data) -> request_parse_result
 {
+    std::span<char> data_span{data.data(), data.length()};
+    return parse(data_span);
+}
+
+template<std::size_t header_count>
+auto request<header_count>::parse(std::span<char>& data) -> request_parse_result
+{
     if(data.empty())
     {
         return request_parse_result::incomplete;
@@ -521,9 +528,9 @@ auto request<header_count>::parse(std::string& data) -> request_parse_result
 }
 
 template<std::size_t header_count>
-auto request<header_count>::parse_method(std::string& data) -> request_parse_result
+auto request<header_count>::parse_method(std::span<char>& data) -> request_parse_result
 {
-    size_t data_length = data.length();
+    size_t data_length = data.size();
 
     switch(data[0])
     {
@@ -725,10 +732,10 @@ auto request<header_count>::parse_method(std::string& data) -> request_parse_res
 }
 
 template<std::size_t header_count>
-auto request<header_count>::parse_uri(std::string& data) -> request_parse_result
+auto request<header_count>::parse_uri(std::span<char>& data) -> request_parse_result
 {
     ADVANCE(); // Previous parse leaves us on the HTTP_SP token before the URI, advance past it.
-    size_t data_length = data.length();
+    size_t data_length = data.size();
     if(m_uri_start_pos == 0)
     {
         // Set the start pos once (subsequent Parse calls could have different m_pos!)
@@ -770,7 +777,7 @@ auto request<header_count>::parse_uri(std::string& data) -> request_parse_result
 }
 
 template<std::size_t header_count>
-auto request<header_count>::parse_version(std::string& data) -> request_parse_result
+auto request<header_count>::parse_version(std::span<char>& data) -> request_parse_result
 {
     ADVANCE(); // the standalone function expects to be on the first character.
 
@@ -786,7 +793,7 @@ auto request<header_count>::parse_version(std::string& data) -> request_parse_re
             return request_parse_result::incomplete;
         case parse_version_result::advance:
         {
-            if (TURBO_UNLIKELY(m_pos + 2 >= data.length()))
+            if (TURBO_UNLIKELY(m_pos + 2 >= data.size()))
             {
                 return request_parse_result::incomplete;
             }
@@ -808,7 +815,7 @@ auto request<header_count>::parse_version(std::string& data) -> request_parse_re
 }
 
 template<std::size_t header_count>
-auto request<header_count>::parse_headers(std::string& data) -> request_parse_result
+auto request<header_count>::parse_headers(std::span<char>& data) -> request_parse_result
 {
     return parse_headers_common<request_parse_state, request_parse_result, header_count>(
         data,
@@ -822,7 +829,7 @@ auto request<header_count>::parse_headers(std::string& data) -> request_parse_re
 }
 
 template<std::size_t header_count>
-auto request<header_count>::parse_body(std::string& data) -> request_parse_result
+auto request<header_count>::parse_body(std::span<char>& data) -> request_parse_result
 {
     return parse_body_common<request_parse_state, request_parse_result>(
         data,
@@ -860,15 +867,22 @@ auto request<header_count>::http_header(std::string_view name) const -> std::opt
         auto& [header_name, header_value] = m_headers[i];
         if(string_view_iequal(name, header_name))
         {
-            return std::optional<std::string_view>{header_value};
+            return {header_value};
         }
     }
 
-    return std::optional<std::string_view>{};
+    return std::nullopt;
 }
 
 template<std::size_t header_count>
 auto response<header_count>::parse(std::string& data) -> response_parse_result
+{
+    std::span<char> data_span{data.data(), data.size()};
+    return parse(data_span);
+}
+
+template<std::size_t header_count>
+auto response<header_count>::parse(std::span<char>& data) -> response_parse_result
 {
     if(data.empty())
     {
@@ -926,7 +940,7 @@ auto response<header_count>::parse(std::string& data) -> response_parse_result
 }
 
 template<std::size_t header_count>
-auto response<header_count>::parse_version(std::string& data) -> response_parse_result
+auto response<header_count>::parse_version(std::span<char>& data) -> response_parse_result
 {
     auto result = parse_version_common(data, m_pos, m_version);
 
@@ -941,7 +955,7 @@ auto response<header_count>::parse_version(std::string& data) -> response_parse_
             return response_parse_result::incomplete;
         case parse_version_result::advance:
         {
-            if(TURBO_UNLIKELY(m_pos + 1 >= data.length()))
+            if(TURBO_UNLIKELY(m_pos + 1 >= data.size()))
             {
                 return response_parse_result::incomplete;
             }
@@ -960,9 +974,9 @@ auto response<header_count>::parse_version(std::string& data) -> response_parse_
 }
 
 template<std::size_t header_count>
-auto response<header_count>::parse_status_code(std::string& data) -> response_parse_result
+auto response<header_count>::parse_status_code(std::span<char>& data) -> response_parse_result
 {
-    size_t data_length = data.length();
+    size_t data_length = data.size();
     size_t required_bytes = m_pos + 3;
 
     /**
@@ -997,7 +1011,7 @@ auto response<header_count>::parse_status_code(std::string& data) -> response_pa
 }
 
 template<std::size_t header_count>
-auto response<header_count>::parse_reason_phrase(std::string& data) -> response_parse_result
+auto response<header_count>::parse_reason_phrase(std::span<char>& data) -> response_parse_result
 {
     // Since the reason phrases are not truely standardized, the parser just looks
     // for the \r\n that ends the line and sets the m_reason_phrase to the entire section.
@@ -1005,7 +1019,7 @@ auto response<header_count>::parse_reason_phrase(std::string& data) -> response_
     // currently not handled by the parser and just looks for \r\n.
 
     size_t value_end = m_pos;
-    if(TURBO_LIKELY(find_crlf(data, value_end)))
+    if(TURBO_LIKELY(find_crlf(std::string_view{data.data(), data.size()}, value_end)))
     {
         // If found, value_end will be the byte before \r\n, so calculate the length + 1 for the string view.
         m_reason_phrase = std::string_view{&data[m_pos], value_end - m_pos + 1};
@@ -1020,7 +1034,7 @@ auto response<header_count>::parse_reason_phrase(std::string& data) -> response_
 }
 
 template<std::size_t header_count>
-auto response<header_count>::parse_headers(std::string& data) -> response_parse_result
+auto response<header_count>::parse_headers(std::span<char>& data) -> response_parse_result
 {
     return parse_headers_common<response_parse_state, response_parse_result, header_count>(
         data,
@@ -1034,7 +1048,7 @@ auto response<header_count>::parse_headers(std::string& data) -> response_parse_
 }
 
 template<std::size_t header_count>
-auto response<header_count>::parse_body(std::string& data) -> response_parse_result
+auto response<header_count>::parse_body(std::span<char>& data) -> response_parse_result
 {
     return parse_body_common<response_parse_state, response_parse_result>(
         data,

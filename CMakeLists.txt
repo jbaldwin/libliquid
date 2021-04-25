@@ -28,7 +28,7 @@ set(LIBTURBOHTTP_SOURCE_FILES
 
 add_library(${PROJECT_NAME} STATIC ${LIBTURBOHTTP_SOURCE_FILES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 target_include_directories(${PROJECT_NAME} PUBLIC src)
 target_compile_definitions(${PROJECT_NAME} PRIVATE ${TURBOHTTP_HEADER_COUNT})
 
